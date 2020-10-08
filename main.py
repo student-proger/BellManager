@@ -6,7 +6,7 @@ TO DO:
 
 '''
 
-VER = "1.0"
+VER = "1.1"
 
 import os
 
@@ -22,9 +22,6 @@ import time
 import json
 if isWindows():
     print("OS: Windows")
-    #print("Import windll module... ", end="")
-    #from ctypes import windll
-    #print("OK")
 else:
     print("OS: Linux")
 
@@ -38,7 +35,6 @@ from PyQt5.QtGui import QPixmap
 import mainform
 import settingsform
 import aboutform
-
 
 RusDays = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
 
@@ -115,11 +111,6 @@ blockChange = False
 #Флаг блокировки многократного логирования ошибки порта
 lastErrorPort = False
 
-#if isWindows():
-#    print("Loading inpout32.dll... ", end="")
-#    p = windll.LoadLibrary("inpout32/inpout32.dll")
-#    print("OK")
-#p.Out32(890, 9)
 
 def logger(msg):
     now = datetime.now()
@@ -130,16 +121,22 @@ def logger(msg):
     print(s)
     f.close()
 
+
 def saveSettings():
     logger("Saving settings.")
     with open('settings.json', 'w') as f:
         json.dump(settings, f)
 
+
 def loadSettings():
     global settings
     logger("Loading settings.")
-    with open('settings.json') as f:
-        settings = json.load(f)
+    try:
+        with open('settings.json') as f:
+            settings = json.load(f)
+    except FileNotFoundError:
+        logger("Settings not found. Using default.")
+
 
 def openPort():
     global ser
@@ -169,12 +166,14 @@ def openPort():
             lastErrorPort = True
     return ok
 
+
 def closePort():
     global ser
     try:
         ser.close()
     except:
         pass
+
 
 def writePort(msg):
     global ser
@@ -187,6 +186,7 @@ def writePort(msg):
             lastErrorPort = True
         closePort()
         openPort()
+
 
 
 class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
@@ -225,7 +225,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.tableWidget_3.setRowCount(0)
         self.label.setText("")
 
-        self.setWindowTitle("BellManager v" + VER)
+        self.setWindowTitle("Bell Manager v" + VER)
         #Читаем настройки
         loadSettings()
         #Запускаем таймер
@@ -239,6 +239,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.statusL.setPixmap(self.pixmapRed)
 
         openPort()
+
 
     #Главный таймер
     def on_timer(self):
@@ -361,6 +362,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.LightDisable()
         self.UpdateStatus()
 
+
     #Обновляем пиктограммы статуса
     def UpdateStatus(self):
         if self.RingOn == True:
@@ -371,6 +373,17 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.statusL.setPixmap(self.pixmapGreen)
         else:
             self.statusL.setPixmap(self.pixmapRed)
+
+
+    #"7:5" --> "7:05"
+    def formatTime(self, s):
+        t = list(map(int, s.split(":")))
+        ss = str(t[0]) + ":"
+        if t[1] < 10:
+            ss = ss + "0"
+        ss = ss + str(t[1])
+        return ss
+
 
     #Возвращает индекс текущего действующего расписания
     def TodayRasp(self):
@@ -393,6 +406,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
         return idr
 
+
     #Заполнение таблиц расписания на главной форме
     def fillTimeTables(self):
         #Заполняем время уроков
@@ -413,8 +427,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.tableWidget.setRowCount(len(settings["Rasp"][str(self.idr)]["Times"]))
         for item in settings["Rasp"][str(self.idr)]["Times"]:
             vh.append(item[0])
-            self.tableWidget.setItem(row, 0, QTableWidgetItem(item[1]))
-            self.tableWidget.setItem(row, 1, QTableWidgetItem(item[2]))
+            self.tableWidget.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+            self.tableWidget.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
             row += 1
         self.tableWidget.setVerticalHeaderLabels(vh)
 
@@ -423,8 +437,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.tableWidget_2.setRowCount(len(settings["Rasp"][str(self.idr)]["Times2"]))
         for item in settings["Rasp"][str(self.idr)]["Times2"]:
             vh.append(item[0])
-            self.tableWidget_2.setItem(row, 0, QTableWidgetItem(item[1]))
-            self.tableWidget_2.setItem(row, 1, QTableWidgetItem(item[2]))
+            self.tableWidget_2.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+            self.tableWidget_2.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
             row += 1
         self.tableWidget_2.setVerticalHeaderLabels(vh)
 
@@ -436,10 +450,11 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                 vh.append("Вкл")
             else:
                 vh.append("Выкл")
-            self.tableWidget_3.setItem(row, 0, QTableWidgetItem(item[1]))
-            self.tableWidget_3.setItem(row, 1, QTableWidgetItem(item[2]))
+            self.tableWidget_3.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+            self.tableWidget_3.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
             row += 1
         self.tableWidget_3.setVerticalHeaderLabels(vh)
+
 
     def startRing(self, duration):
         if duration != 0:
@@ -452,6 +467,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         writePort(b'W')
         self.UpdateStatus()
 
+
     def stopRing(self):
         try:
             self.ringtimer.stop()
@@ -463,12 +479,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         writePort(b'w')
         self.UpdateStatus()
 
+
     def LightEnable(self):
         if self.lastLightState == False:
             self.lastLightState = True
             logger("Enable light.")
         writePort(b'E')
         writePort(b'R')
+
 
     def LightDisable(self):
         if self.lastLightState == True:
@@ -581,6 +599,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
         swindow.exec_() #exec_ делает форму модальной
 
+
     def autoModeButtonClick(self):
         logger("Auto mode enabled.")
         self.manualModeButton.setChecked(False)
@@ -590,6 +609,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             settings["Mode"] = 0
             self.manualLightButton.setEnabled(False)
             saveSettings()
+
 
     def manualModeButtonClick(self):
         logger("Manual mode enabled.")
@@ -602,6 +622,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.manualLightButton.setEnabled(True)
             saveSettings()
 
+
     def amModeButtonClick(self):
         logger("A/m mode enabled.")
         self.manualModeButton.setChecked(False)
@@ -613,13 +634,16 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.manualLightButton.setEnabled(True)
             saveSettings()
 
+
     def manualRingPress(self):
         logger("Manual ring pressed.")
         self.startRing(0)
 
+
     def manualRingRelease(self):
         logger("Manual ring released.")
         self.stopRing()
+
 
     def manualLightClick(self):
         self.manualLightOn = not self.manualLightOn
@@ -628,6 +652,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         else:
             logger("Manual light disabled.")
         self.UpdateStatus()
+
 
 
 class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
@@ -665,6 +690,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.deleteSpecialDayButton.clicked.connect(self.deleteSpecialDayButtonClick)
         self.addSpecialRingButton.clicked.connect(self.addSpecialRingButtonClick)
         self.deleteSpecialRingButton.clicked.connect(self.deleteSpecialRingButtonClick)
+
 
     #Обновление списков после изменений в списках расписаний
     def updateLists(self):
@@ -760,12 +786,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
 
         blockChange = False
 
+
     #Проверяет существование расписания по его имени
     def raspExistByName(self, name):
         for item in self.sett["RaspList"]:
             if self.sett["RaspList"][item].upper() == name.upper():
                 return True
         return False
+
 
     #Изменение значений на вкладке "Менеджер расписаний"
     def raspDayChanged(self):
@@ -785,6 +813,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
                 break
 
         self.sett["IndexesRasp"][d] = ids
+
 
     #Выбор расписания в списке
     def listRaspClick(self, item):
@@ -879,6 +908,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.tableWidget_4.setCellWidget(row, 2, te)
             row += 1
         self.tableWidget_4.resizeColumnsToContents()
+
 
     #Кнопка добавления нового расписания
     def addNewRaspButtonClick(self):
