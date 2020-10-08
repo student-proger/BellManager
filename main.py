@@ -3,10 +3,13 @@
 '''
 TO DO:
 * Чистить старые SpecialDays и SpecialRings
++ Разделение на начальную и основную школу
+* Подкорректировать все подсказки к элементам управления
++ Сделать автозапуск
 
 '''
 
-VER = "1.1"
+VER = "1.2"
 
 import os
 
@@ -216,6 +219,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.manualModeButton.clicked.connect(self.manualModeButtonClick)
         self.autoModeButton.clicked.connect(self.autoModeButtonClick)
         self.amModeButton.clicked.connect(self.amModeButtonClick)
+        self.aboutButton.clicked.connect(self.aboutButtonClick)
 
         self.tableWidget.clear()
         self.tableWidget_2.clear()
@@ -228,6 +232,26 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.setWindowTitle("Bell Manager v" + VER)
         #Читаем настройки
         loadSettings()
+
+        if settings["Mode"] == 0:
+            logger("Auto mode enabled.")
+            self.manualModeButton.setChecked(False)
+            self.autoModeButton.setChecked(True)
+            self.amModeButton.setChecked(False)
+            self.manualLightButton.setEnabled(False)
+        elif settings["Mode"] == 1:
+            logger("Manual mode enabled.")
+            self.manualModeButton.setChecked(True)
+            self.autoModeButton.setChecked(False)
+            self.amModeButton.setChecked(False)
+            self.manualLightButton.setEnabled(True)
+        else:
+            logger("A/m mode enabled.")
+            self.manualModeButton.setChecked(False)
+            self.autoModeButton.setChecked(False)
+            self.amModeButton.setChecked(True)
+            self.manualLightButton.setEnabled(True)
+
         #Запускаем таймер
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.on_timer)
@@ -249,6 +273,17 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         s = s + datetime.strftime(datetime.now(), "  %d.%m.%Y  %H:%M:%S")
 
         self.label.setText(s)
+
+        #Переход в автоматический режим в начале следующих суток
+        ht = int(datetime.strftime(datetime.now(), "%H"))
+        mt = int(datetime.strftime(datetime.now(), "%M"))
+        if (ht == 0) and (mt < 1) and (settings["AutoOnNewDay"] == True):
+            if settings["Mode"] != 0:
+                logger("Auto mode enabled.")
+                self.manualModeButton.setChecked(False)
+                self.autoModeButton.setChecked(True)
+                self.amModeButton.setChecked(False)
+                self.manualLightButton.setEnabled(False)
 
         if lastErrorPort:
             self.label_7.setText("Ошибка связи с контроллером!")
@@ -579,6 +614,10 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             swindow.listWidget_3.addItem(s)
             row += 1
 
+        swindow.portComboBox.setCurrentText(settings["Port"]["Win"])
+        swindow.portLineEdit.setText(settings["Port"]["Linux"])
+        swindow.portSpeed.setCurrentText(str(settings["Port"]["Speed"]))
+
         blockChange = False
 
         try:
@@ -653,6 +692,9 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             logger("Manual light disabled.")
         self.UpdateStatus()
 
+    def aboutButtonClick(self):
+        aboutwindow.exec_()
+
 
 
 class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
@@ -690,6 +732,12 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.deleteSpecialDayButton.clicked.connect(self.deleteSpecialDayButtonClick)
         self.addSpecialRingButton.clicked.connect(self.addSpecialRingButtonClick)
         self.deleteSpecialRingButton.clicked.connect(self.deleteSpecialRingButtonClick)
+
+        self.portComboBox.clear()
+        for i in range(1, 31):
+            self.portComboBox.addItem("COM" + str(i))
+
+        self.autoStartCheckbox.setVisible(False)
 
 
     #Обновление списков после изменений в списках расписаний
@@ -1402,6 +1450,17 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         global settings
         logger("Settings closed. Saved.")
 
+        self.sett["Port"]["Win"] = swindow.portComboBox.currentText()
+        self.sett["Port"]["Linux"] = swindow.portLineEdit.text()
+        self.sett["Port"]["Speed"] = int(swindow.portSpeed.currentText())
+
+        self.sett["RingDuration"] = swindow.spinBox.value()
+        self.sett["LightDelay"] = swindow.spinBox_2.value()
+        if swindow.autoOnNewDayCheckbox.checkState():
+            self.sett["AutoOnNewDay"] = True
+        else:
+            self.sett["AutoOnNewDay"] = False
+
         settings = json.loads(json.dumps(self.sett))
         saveSettings()
         window.idr = -1
@@ -1415,12 +1474,14 @@ class AboutApp(QtWidgets.QDialog, aboutform.Ui_AboutDialog):
         # и т.д. в файле mainform.py
         super().__init__()
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
+        self.versionLabel.setText("Версия " + VER)
         
         
 def main():
     logger("********** Starting application. **********")
     global swindow
     global window
+    global aboutwindow
     app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
     window = SchoolRingerApp()  # Создаём объект класса SchoolRingerApp
     window.show()  # Показываем окно
@@ -1431,5 +1492,5 @@ def main():
     logger("********** Terminating application. **********")
 
 
-if __name__ == '__main__':  # Если мы запускаем файл напрямую, а не импортируем
-    main()  # то запускаем функцию main()
+if __name__ == '__main__':
+    main()

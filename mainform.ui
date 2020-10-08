@@ -17,7 +17,7 @@
    </sizepolicy>
   </property>
   <property name="windowTitle">
-   <string>Звонилка</string>
+   <string>Bell Manager</string>
   </property>
   <property name="windowIcon">
    <iconset>
@@ -110,7 +110,7 @@
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>178</width>
+      <width>369</width>
       <height>51</height>
      </rect>
     </property>
@@ -132,12 +132,23 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QCommandLinkButton" name="aboutButton">
+       <property name="text">
+        <string>О программе</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>images/info_24px.png</normaloff>images/info_24px.png</iconset>
+       </property>
+      </widget>
+     </item>
     </layout>
    </widget>
    <widget class="QWidget" name="horizontalLayoutWidget_2">
     <property name="geometry">
      <rect>
-      <x>250</x>
+      <x>430</x>
       <y>0</y>
       <width>530</width>
       <height>51</height>
