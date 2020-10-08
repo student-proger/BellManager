@@ -9,7 +9,7 @@ TO DO:
 
 '''
 
-VER = "1.2"
+VER = "2.0"
 
 import os
 
