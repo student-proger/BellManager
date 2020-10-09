@@ -2,7 +2,7 @@
 
 '''
 TO DO:
-* Чистить старые SpecialDays и SpecialRings
+* Чистить старые SpecDays и SpecialRings
 + Разделение на начальную и основную школу
 * Подкорректировать все подсказки к элементам управления
 + Сделать автозапуск
@@ -57,9 +57,8 @@ settings = {
     "LightDelay": 2,
     "AutoOnNewDay": True,
     "Mode": 0,
-    "Nachalka": False,
     "IndexesRasp": [1, 1, 1, 1, 2, 1, 0],
-    "IndexesRaspNach": [3, 3, 3, 3, 2, 3, 0],
+    "IndexesRaspN": [3, 3, 3, 3, 2, 3, 0],
     "RaspList": {
         "0": "Выходной",
         "1": "Обычное", 
@@ -120,22 +119,14 @@ settings = {
             ]
         }
     },
-    "SpecialDays": {
-        "24/9/2020": 0,
-        "25/9/2020": 2
-    },
     "SpecialRings": [
         ["24/9/2020", "13:56", 5],
         ["25/9/2020", "12:00", 5]
     ],
-    "SpecialDaysNach": {
-        "24/9/2020": 0,
-        "25/9/2020": 2
+    "SpecDays": {
+        "24/9/2020": "0:0",
+        "25/9/2020": "2:1"
     },
-    "SpecialRingsNach": [
-        ["24/9/2020", "13:56", 5],
-        ["25/9/2020", "12:00", 5]
-    ]
 }
 
 #Флаг блокировки изменений в виджетах. Ставить True при загрузке данных на форму
@@ -227,18 +218,19 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         # и т.д. в файле mainform.py
         super().__init__()
         #Флаги включения звонка и освещения
-        self.RingOn = False
-        self.LightOn = False
+        self.RingOn = [False, False]
+        self.LightOn = [False, False]
         #ID текущего установленного расписания
-        self.idr = -1
+        self.idr = [-1, -1]
+        self.crasp = [0, 0]
         #Флаг блокировки повторного автоматического включения звонка в течении минуты после срабатывания
-        self.blockRing = False
+        self.blockRing = [False, False]
         #Для обнаружения изменения состояния освещения
-        self.lastLightState = False
+        self.lastLightState = [False, False]
         #Ручной режим освещения
-        self.manualLightOn = False
+        self.manualLightOn = [False, False]
 
-        self.needLight = False
+        self.needLight = [False, False]
 
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
         self.settingsButton.clicked.connect(self.openSettings)
@@ -246,6 +238,9 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.manualRingButton.released.connect(self.manualRingRelease)
         self.manualLightButton.clicked.connect(self.manualLightClick)
         self.manualModeButton.clicked.connect(self.manualModeButtonClick)
+        self.manualRingButton_2.pressed.connect(self.manualRingNPress)
+        self.manualRingButton_2.released.connect(self.manualRingNRelease)
+        self.manualLightButton_2.clicked.connect(self.manualLightNClick)
         self.autoModeButton.clicked.connect(self.autoModeButtonClick)
         self.amModeButton.clicked.connect(self.amModeButtonClick)
         self.aboutButton.clicked.connect(self.aboutButtonClick)
@@ -262,26 +257,37 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         #Читаем настройки
         loadSettings()
 
+        #Для обратной совместимости с предыдущими версиями проверяем настройки
+        if not "SimpleMode" in settings:
+            settings["SimpleMode"] = False
+        if not "IndexesRaspN" in settings:
+            settings["IndexesRaspN"] = [0, 0, 0, 0, 0, 0, 0]
+        if not "SpecDays" in settings:
+            settings["SpecDays"] = {}
+
         if settings["Mode"] == 0:
             logger("Auto mode enabled.")
             self.manualModeButton.setChecked(False)
             self.autoModeButton.setChecked(True)
             self.amModeButton.setChecked(False)
             self.manualLightButton.setEnabled(False)
+            self.manualLightButton_2.setEnabled(False)
         elif settings["Mode"] == 1:
             logger("Manual mode enabled.")
             self.manualModeButton.setChecked(True)
             self.autoModeButton.setChecked(False)
             self.amModeButton.setChecked(False)
             self.manualLightButton.setEnabled(True)
+            self.manualLightButton_2.setEnabled(True)
         else:
             logger("A/m mode enabled.")
             self.manualModeButton.setChecked(False)
             self.autoModeButton.setChecked(False)
             self.amModeButton.setChecked(True)
             self.manualLightButton.setEnabled(True)
+            self.manualLightButton_2.setEnabled(True)
 
-        #Запускаем таймер
+        #Запускаем главный таймер
         self.timer = QtCore.QTimer()
         self.timer.timeout.connect(self.on_timer)
         self.timer.start(1000)
@@ -290,6 +296,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.pixmapGreen = QPixmap("images/green.png")
         self.statusR.setPixmap(self.pixmapRed)
         self.statusL.setPixmap(self.pixmapRed)
+        self.statusR_2.setPixmap(self.pixmapRed)
+        self.statusL_2.setPixmap(self.pixmapRed)
 
         openPort()
 
@@ -297,6 +305,9 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
     #Главный таймер
     def on_timer(self):
         global lastErrorPort
+        newidr = [-1, -1]
+        needRing = [False, False]
+
         now = datetime.now()
         s = RusDays[int(datetime.strftime(datetime.now(), "%w"))]
         s = s + datetime.strftime(datetime.now(), "  %d.%m.%Y  %H:%M:%S")
@@ -313,25 +324,41 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                 self.autoModeButton.setChecked(True)
                 self.amModeButton.setChecked(False)
                 self.manualLightButton.setEnabled(False)
+                self.manualLightButton_2.setEnabled(False)
 
         if lastErrorPort:
             self.label_7.setText("Ошибка связи с контроллером!")
         else:
             self.label_7.setText("Контроллер подключен.")
 
-        newidr = self.TodayRasp()
-        if newidr != self.idr:
+        changed = False
+
+        newidr[0] = self.TodayRasp(0)
+        if newidr[0] != self.idr[0]:
             #Расписание изменилось
-            self.idr = newidr
-            self.label_2.setText("Текущее расписание: " + settings["RaspList"][str(self.idr)])
-            logger("Setting timetable: " + settings["RaspList"][str(self.idr)])
+            self.idr[0] = newidr[0]
+            self.label_2.setText("Текущее расписание: " + settings["RaspList"][str(self.idr[0])])
+            logger("Setting timetable: " + settings["RaspList"][str(self.idr[0])])
+            changed = True
+            if self.idr[0] != 0:
+                self.crasp[0] = settings["Rasp"][str(self.idr[0])]
+
+        newidr[1] = self.TodayRasp(1)
+        if newidr[1] != self.idr[1]:
+            #Расписание изменилось
+            self.idr[1] = newidr[1]
+            self.label_11.setText("Текущее расписание: " + settings["RaspList"][str(self.idr[1])])
+            logger("Setting timetable N: " + settings["RaspList"][str(self.idr[1])])
+            changed = True
+            if self.idr[1] != 0:
+                self.crasp[1] = settings["Rasp"][str(self.idr[1])]
+
+        if changed:
             self.fillTimeTables()
-            if self.idr != 0:
-                self.crasp = settings["Rasp"][str(self.idr)]
 
-        nowLesson = False
+        nowLesson = [False, False]
 
-        if self.idr != 0:
+        if self.idr[0] != 0:
             #Проверка совпадений в расписании уроков
             h = int(datetime.strftime(datetime.now(), "%H"))
             m = int(datetime.strftime(datetime.now(), "%M"))
@@ -339,104 +366,194 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             month = int(datetime.strftime(datetime.now(), "%m"))
             year = int(datetime.strftime(datetime.now(), "%Y"))
             mtime = h * 60 + m
-            needRing = False
-            self.needLight = True
-            for item in self.crasp["Times"]:
+            needRing[0] = False
+            self.needLight[0] = True
+            for item in self.crasp[0]["Times"]:
                 ts = list(map(int, item[1].split(":")))
                 te = list(map(int, item[2].split(":")))
                 stime = ts[0] * 60 + ts[1]
                 etime = te[0] * 60 + te[1]
                 if (mtime == stime) or (mtime == etime):
-                    needRing = True
+                    needRing[0] = True
                 if (mtime >= stime + settings["LightDelay"]) and (mtime < etime):
-                    self.needLight = False
+                    self.needLight[0] = False
                 if (mtime >= stime) and (mtime < etime):
-                    nowLesson = True
-            for item in self.crasp["Times2"]:
+                    nowLesson[0] = True
+            for item in self.crasp[0]["Times2"]:
                 ts = list(map(int, item[1].split(":")))
                 te = list(map(int, item[2].split(":")))
                 stime = ts[0] * 60 + ts[1]
                 etime = te[0] * 60 + te[1]
                 if (mtime == stime) or (mtime == etime):
-                    needRing = True
+                    needRing[0] = True
                 if (mtime >= stime + settings["LightDelay"]) and (mtime < etime):
-                    self.needLight = False
+                    self.needLight[0] = False
                 if (mtime >= stime) and (mtime < etime):
-                    nowLesson = True
+                    nowLesson[0] = True
 
-            if nowLesson:
+            if nowLesson[0]:
                 self.label_6.setText("Сейчас идёт урок")
             else:
                 self.label_6.setText("Сейчас перемена")
 
             #Проверяем режим энергосбережения утром и вечером
-            Lon = list(map(int, self.crasp["LightOn"].split(":")))
-            Loff = list(map(int, self.crasp["LightOff"].split(":")))
+            Lon = list(map(int, self.crasp[0]["LightOn"].split(":")))
+            Loff = list(map(int, self.crasp[0]["LightOff"].split(":")))
             timeon = Lon[0] * 60 + Lon[1]
             timeoff = Loff[0] * 60 + Loff[1]
             if (mtime < timeon) or (mtime >= timeoff):
-                self.needLight = False
+                self.needLight[0] = False
                 self.label_6.setText("Режим энергосбережения")
 
             #Проверяем исключения по освещению
-            if len(self.crasp["Light"]) != 0:
-                for item in self.crasp["Light"]:
+            if len(self.crasp[0]["Light"]) != 0:
+                for item in self.crasp[0]["Light"]:
                     ts = list(map(int, item[1].split(":")))
                     te = list(map(int, item[2].split(":")))
                     stime = ts[0] * 60 + ts[1]
                     etime = te[0] * 60 + te[1]
                     if (mtime >= stime) and (mtime < etime):
                         if item[0] == 1:
-                            self.needLight = True
+                            self.needLight[0] = True
                         else:
-                            self.needLight = False
-
-            #Проверяем дополнительные звонки
-            if len(settings["SpecialRings"]) != 0:
-                for item in settings["SpecialRings"]:
-                    sday = list(map(int, item[0].split("/")))
-                    ts = list(map(int, item[1].split(":")))
-                    stime = ts[0] * 60 + ts[1]
-                    duration = item[2]
-                    if (sday[0] == day) and (sday[1] == month) and (sday[2] == year):
-                        if mtime == stime:
-                            self.startRing(duration)
+                            self.needLight[0] = False
 
         else:
             self.label_6.setText("Режим энергосбережения - выходной")
-            needRing = False
-            self.needLight = False
+            needRing[0] = False
+            self.needLight[0] = False
+
+        if self.idr[1] != 0:
+            #Проверка совпадений в расписании уроков началки
+            h = int(datetime.strftime(datetime.now(), "%H"))
+            m = int(datetime.strftime(datetime.now(), "%M"))
+            day = int(datetime.strftime(datetime.now(), "%d"))
+            month = int(datetime.strftime(datetime.now(), "%m"))
+            year = int(datetime.strftime(datetime.now(), "%Y"))
+            mtime = h * 60 + m
+            needRing[1] = False
+            self.needLight[1] = True
+            for item in self.crasp[1]["Times"]:
+                ts = list(map(int, item[1].split(":")))
+                te = list(map(int, item[2].split(":")))
+                stime = ts[0] * 60 + ts[1]
+                etime = te[0] * 60 + te[1]
+                if (mtime == stime) or (mtime == etime):
+                    needRing[1] = True
+                if (mtime >= stime + settings["LightDelay"]) and (mtime < etime):
+                    self.needLight[1] = False
+                if (mtime >= stime) and (mtime < etime):
+                    nowLesson[1] = True
+            for item in self.crasp[1]["Times2"]:
+                ts = list(map(int, item[1].split(":")))
+                te = list(map(int, item[2].split(":")))
+                stime = ts[0] * 60 + ts[1]
+                etime = te[0] * 60 + te[1]
+                if (mtime == stime) or (mtime == etime):
+                    needRing[1] = True
+                if (mtime >= stime + settings["LightDelay"]) and (mtime < etime):
+                    self.needLight[1] = False
+                if (mtime >= stime) and (mtime < etime):
+                    nowLesson[1] = True
+
+            if nowLesson[1]:
+                self.label_12.setText("Сейчас идёт урок")
+            else:
+                self.label_12.setText("Сейчас перемена")
+
+            #Проверяем режим энергосбережения утром и вечером
+            Lon = list(map(int, self.crasp[1]["LightOn"].split(":")))
+            Loff = list(map(int, self.crasp[1]["LightOff"].split(":")))
+            timeon = Lon[0] * 60 + Lon[1]
+            timeoff = Loff[0] * 60 + Loff[1]
+            if (mtime < timeon) or (mtime >= timeoff):
+                self.needLight[1] = False
+                self.label_12.setText("Режим энергосбережения")
+
+            #Проверяем исключения по освещению
+            if len(self.crasp[1]["Light"]) != 0:
+                for item in self.crasp[1]["Light"]:
+                    ts = list(map(int, item[1].split(":")))
+                    te = list(map(int, item[2].split(":")))
+                    stime = ts[0] * 60 + ts[1]
+                    etime = te[0] * 60 + te[1]
+                    if (mtime >= stime) and (mtime < etime):
+                        if item[0] == 1:
+                            self.needLight[1] = True
+                        else:
+                            self.needLight[1] = False
+        else:
+            self.label_12.setText("Режим энергосбережения - выходной")
+            needRing[1] = False
+            self.needLight[1] = False
+
+        #Проверяем дополнительные звонки
+        if len(settings["SpecialRings"]) != 0:
+            for item in settings["SpecialRings"]:
+                sday = list(map(int, item[0].split("/")))
+                ts = list(map(int, item[1].split(":")))
+                stime = ts[0] * 60 + ts[1]
+                duration = item[2]
+                if (sday[0] == day) and (sday[1] == month) and (sday[2] == year):
+                    if mtime == stime:
+                        self.startRing(duration, 0)
+                        self.startRing(duration, 1)
 
         #КОНЕЦ ПРОВЕРОК, передаём управление
         if settings["Mode"] != 1:
-            if needRing:
-                if self.blockRing == False:
-                    self.startRing(settings["RingDuration"])
+            if needRing[0]:
+                if self.blockRing[0] == False:
+                    self.startRing(settings["RingDuration"], 0)
                 #блокируем звонки при следующих итерациях таймера
-                self.blockRing = True
+                self.blockRing[0] = True
             else:
-                self.blockRing = False
+                self.blockRing[0] = False
+
+            if needRing[1]:
+                if self.blockRing[1] == False:
+                    self.startRing(settings["RingDuration"], 1)
+                #блокируем звонки при следующих итерациях таймера
+                self.blockRing[1] = True
+            else:
+                self.blockRing[1] = False
+
+
         if settings["Mode"] == 0:
-            self.LightOn = self.needLight
+            self.LightOn[0] = self.needLight[0]
+            self.LightOn[1] = self.needLight[1]
         else:
-            self.LightOn = self.manualLightOn;
-        if self.LightOn:
-            self.LightEnable()
+            self.LightOn[0] = self.manualLightOn[0];
+            self.LightOn[1] = self.manualLightOn[1];
+        if self.LightOn[0]:
+            self.LightEnable(0)
         else:
-            self.LightDisable()
+            self.LightDisable(0)
+        if self.LightOn[1]:
+            self.LightEnable(1)
+        else:
+            self.LightDisable(1)
         self.UpdateStatus()
 
 
     #Обновляем пиктограммы статуса
     def UpdateStatus(self):
-        if self.RingOn == True:
+        if self.RingOn[0] == True:
             self.statusR.setPixmap(self.pixmapGreen)
         else:
             self.statusR.setPixmap(self.pixmapRed)
-        if self.LightOn:
+        if self.LightOn[0]:
             self.statusL.setPixmap(self.pixmapGreen)
         else:
             self.statusL.setPixmap(self.pixmapRed)
+
+        if self.RingOn[1] == True:
+            self.statusR_2.setPixmap(self.pixmapGreen)
+        else:
+            self.statusR_2.setPixmap(self.pixmapRed)
+        if self.LightOn[1]:
+            self.statusL_2.setPixmap(self.pixmapGreen)
+        else:
+            self.statusL_2.setPixmap(self.pixmapRed)
 
 
     #"7:5" --> "7:05"
@@ -450,22 +567,27 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     #Возвращает индекс текущего действующего расписания
-    def TodayRasp(self):
+    #index: 0 - основная, 1 - началка
+    def TodayRasp(self, index):
         wday = int(datetime.strftime(datetime.now(), "%w"))
         if wday == 0:
             wday = 7
         wday -= 1
-        idr = settings["IndexesRasp"][wday]
+        if index == 0:
+            idr = settings["IndexesRasp"][wday]
+        else:
+            idr = settings["IndexesRaspN"][wday]
 
         #Проверяем особенные дни
         day = int(datetime.strftime(datetime.now(), "%d"))
         month = int(datetime.strftime(datetime.now(), "%m"))
         year = int(datetime.strftime(datetime.now(), "%Y"))
-        if len(settings["SpecialDays"]) != 0:
-            for item in settings["SpecialDays"]:
+        if len(settings["SpecDays"]) != 0:
+            for item in settings["SpecDays"]:
                 sday = list(map(int, item.split("/")))
                 if (day == sday[0]) and (month == sday[1]) and (year == sday[2]):
-                    idr = settings["SpecialDays"][item]
+                    k = list(map(int, settings["SpecDays"][item].split(":")))
+                    idr = k[index]
                     break
 
         return idr
@@ -477,87 +599,146 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.tableWidget.clear()
         self.tableWidget_2.clear()
         self.tableWidget_3.clear()
+        self.tableWidget_4.clear()
+        self.tableWidget_5.clear()
+        self.tableWidget_6.clear()
         self.tableWidget.setHorizontalHeaderLabels(["Начало", "Конец"])
         self.tableWidget_2.setHorizontalHeaderLabels(["Начало", "Конец"])
         self.tableWidget_3.setHorizontalHeaderLabels(["Начало", "Конец"])
-        if self.idr == 0:
+        self.tableWidget_4.setHorizontalHeaderLabels(["Начало", "Конец"])
+        self.tableWidget_5.setHorizontalHeaderLabels(["Начало", "Конец"])
+        self.tableWidget_6.setHorizontalHeaderLabels(["Начало", "Конец"])
+
+        if self.idr[0] == 0:
             self.tableWidget.setRowCount(0)
             self.tableWidget_2.setRowCount(0)
             self.tableWidget_3.setRowCount(0)
-            return
+        else:
+            row = 0
+            vh = []
+            self.tableWidget.setRowCount(len(settings["Rasp"][str(self.idr[0])]["Times"]))
+            for item in settings["Rasp"][str(self.idr[0])]["Times"]:
+                vh.append(item[0])
+                self.tableWidget.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+                self.tableWidget.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
+                row += 1
+            self.tableWidget.setVerticalHeaderLabels(vh)
+            self.tableWidget.resizeColumnsToContents()
 
-        row = 0
-        vh = []
-        self.tableWidget.setRowCount(len(settings["Rasp"][str(self.idr)]["Times"]))
-        for item in settings["Rasp"][str(self.idr)]["Times"]:
-            vh.append(item[0])
-            self.tableWidget.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
-            self.tableWidget.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
-            row += 1
-        self.tableWidget.setVerticalHeaderLabels(vh)
+            row = 0
+            vh = []
+            self.tableWidget_2.setRowCount(len(settings["Rasp"][str(self.idr[0])]["Times2"]))
+            for item in settings["Rasp"][str(self.idr[0])]["Times2"]:
+                vh.append(item[0])
+                self.tableWidget_2.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+                self.tableWidget_2.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
+                row += 1
+            self.tableWidget_2.setVerticalHeaderLabels(vh)
+            self.tableWidget_2.resizeColumnsToContents()
 
-        row = 0
-        vh = []
-        self.tableWidget_2.setRowCount(len(settings["Rasp"][str(self.idr)]["Times2"]))
-        for item in settings["Rasp"][str(self.idr)]["Times2"]:
-            vh.append(item[0])
-            self.tableWidget_2.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
-            self.tableWidget_2.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
-            row += 1
-        self.tableWidget_2.setVerticalHeaderLabels(vh)
+            row = 0
+            vh = []
+            self.tableWidget_3.setRowCount(len(settings["Rasp"][str(self.idr[0])]["Light"]))
+            for item in settings["Rasp"][str(self.idr[0])]["Light"]:
+                if item[0] == 1:
+                    vh.append("Вкл")
+                else:
+                    vh.append("Выкл")
+                self.tableWidget_3.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+                self.tableWidget_3.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
+                row += 1
+            self.tableWidget_3.setVerticalHeaderLabels(vh)
+            self.tableWidget_3.resizeColumnsToContents()
 
-        row = 0
-        vh = []
-        self.tableWidget_3.setRowCount(len(settings["Rasp"][str(self.idr)]["Light"]))
-        for item in settings["Rasp"][str(self.idr)]["Light"]:
-            if item[0] == 1:
-                vh.append("Вкл")
-            else:
-                vh.append("Выкл")
-            self.tableWidget_3.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
-            self.tableWidget_3.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
-            row += 1
-        self.tableWidget_3.setVerticalHeaderLabels(vh)
+        if self.idr[1] == 0:
+            self.tableWidget_4.setRowCount(0)
+            self.tableWidget_5.setRowCount(0)
+            self.tableWidget_6.setRowCount(0)
+        else:
+            row = 0
+            vh = []
+            self.tableWidget_4.setRowCount(len(settings["Rasp"][str(self.idr[1])]["Times"]))
+            for item in settings["Rasp"][str(self.idr[1])]["Times"]:
+                vh.append(item[0])
+                self.tableWidget_4.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+                self.tableWidget_4.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
+                row += 1
+            self.tableWidget_4.setVerticalHeaderLabels(vh)
+            self.tableWidget_4.resizeColumnsToContents()
+
+            row = 0
+            vh = []
+            self.tableWidget_5.setRowCount(len(settings["Rasp"][str(self.idr[1])]["Times2"]))
+            for item in settings["Rasp"][str(self.idr[1])]["Times2"]:
+                vh.append(item[0])
+                self.tableWidget_5.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+                self.tableWidget_5.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
+                row += 1
+            self.tableWidget_5.setVerticalHeaderLabels(vh)
+            self.tableWidget_5.resizeColumnsToContents()
+
+            row = 0
+            vh = []
+            self.tableWidget_6.setRowCount(len(settings["Rasp"][str(self.idr[1])]["Light"]))
+            for item in settings["Rasp"][str(self.idr[1])]["Light"]:
+                if item[0] == 1:
+                    vh.append("Вкл")
+                else:
+                    vh.append("Выкл")
+                self.tableWidget_6.setItem(row, 0, QTableWidgetItem(self.formatTime(item[1])))
+                self.tableWidget_6.setItem(row, 1, QTableWidgetItem(self.formatTime(item[2])))
+                row += 1
+            self.tableWidget_6.setVerticalHeaderLabels(vh)
+            self.tableWidget_6.resizeColumnsToContents()
+        
 
 
-    def startRing(self, duration):
+    def startRing(self, duration, index):
         if duration != 0:
-            self.ringtimer = QtCore.QTimer()
-            self.ringtimer.timeout.connect(self.stopRing)
-            self.ringtimer.start(duration * 1000)
+            self.ringtimer[index] = QtCore.QTimer()
+            self.ringtimer[index].timeout.connect(self.stopRing(index))
+            self.ringtimer[index].start(duration * 1000)
         logger("Ring start.")
-        self.RingOn = True
-        writePort(b'Q')
-        writePort(b'W')
+        self.RingOn[index] = True
+        if index == 0:
+            writePort(b'Q')
+        else:
+            writePort(b'W')
         self.UpdateStatus()
 
 
-    def stopRing(self):
+    def stopRing(self, index):
         try:
-            self.ringtimer.stop()
+            self.ringtimer[index].stop()
         except AttributeError:
             pass
         logger("Ring stop.")
-        self.RingOn = False
-        writePort(b'q')
-        writePort(b'w')
+        self.RingOn[index] = False
+        if index == 0:
+            writePort(b'q')
+        else:
+            writePort(b'w')
         self.UpdateStatus()
 
 
-    def LightEnable(self):
-        if self.lastLightState == False:
-            self.lastLightState = True
+    def LightEnable(self, index):
+        if self.lastLightState[index] == False:
+            self.lastLightState[index] = True
             logger("Enable light.")
-        writePort(b'E')
-        writePort(b'R')
+        if index == 0:
+            writePort(b'E')
+        else:
+            writePort(b'R')
 
 
-    def LightDisable(self):
-        if self.lastLightState == True:
-            self.lastLightState = False
+    def LightDisable(self, index):
+        if self.lastLightState[index] == True:
+            self.lastLightState[index] = False
             logger("Disable light.")
-        writePort(b'e')
-        writePort(b'r')
+        if index == 0:
+            writePort(b'e')
+        else:
+            writePort(b'r')
 
 
     def openSettings(self):
@@ -572,6 +753,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.comboBox_6.clear()
         swindow.comboBox_7.clear()
         swindow.comboBox_8.clear()
+        swindow.comboBox_9.clear()
+        swindow.comboBox_10.clear()
+        swindow.comboBox_11.clear()
+        swindow.comboBox_12.clear()
+        swindow.comboBox_13.clear()
+        swindow.comboBox_14.clear()
+        swindow.comboBox_15.clear()
+        swindow.comboBox_16.clear()
         swindow.listWidget.clear()
         swindow.comboBox.addItem("Выходной")
         swindow.comboBox_2.addItem("Выходной")
@@ -581,6 +770,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.comboBox_6.addItem("Выходной")
         swindow.comboBox_7.addItem("Выходной")
         swindow.comboBox_8.addItem("Выходной")
+        swindow.comboBox_9.addItem("Выходной")
+        swindow.comboBox_10.addItem("Выходной")
+        swindow.comboBox_11.addItem("Выходной")
+        swindow.comboBox_12.addItem("Выходной")
+        swindow.comboBox_13.addItem("Выходной")
+        swindow.comboBox_14.addItem("Выходной")
+        swindow.comboBox_15.addItem("Выходной")
+        swindow.comboBox_16.addItem("Выходной")
         for item in settings["RaspList"]:
             if item == "0":
                 continue
@@ -592,6 +789,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             swindow.comboBox_6.addItem(settings["RaspList"][item])
             swindow.comboBox_7.addItem(settings["RaspList"][item])
             swindow.comboBox_8.addItem(settings["RaspList"][item])
+            swindow.comboBox_9.addItem(settings["RaspList"][item])
+            swindow.comboBox_10.addItem(settings["RaspList"][item])
+            swindow.comboBox_11.addItem(settings["RaspList"][item])
+            swindow.comboBox_12.addItem(settings["RaspList"][item])
+            swindow.comboBox_13.addItem(settings["RaspList"][item])
+            swindow.comboBox_14.addItem(settings["RaspList"][item])
+            swindow.comboBox_15.addItem(settings["RaspList"][item])
+            swindow.comboBox_16.addItem(settings["RaspList"][item])
             swindow.listWidget.addItem(settings["RaspList"][item])
         swindow.spinBox.setValue(settings["RingDuration"])
         swindow.spinBox_2.setValue(settings["LightDelay"])
@@ -605,6 +810,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.comboBox_6.setCurrentText(settings["RaspList"][str(settings["IndexesRasp"][5])])
         swindow.comboBox_8.setCurrentText(settings["RaspList"][str(settings["IndexesRasp"][6])])
 
+        swindow.comboBox_10.setCurrentText(settings["RaspList"][str(settings["IndexesRaspN"][0])])
+        swindow.comboBox_14.setCurrentText(settings["RaspList"][str(settings["IndexesRaspN"][1])])
+        swindow.comboBox_11.setCurrentText(settings["RaspList"][str(settings["IndexesRaspN"][2])])
+        swindow.comboBox_9.setCurrentText(settings["RaspList"][str(settings["IndexesRaspN"][3])])
+        swindow.comboBox_12.setCurrentText(settings["RaspList"][str(settings["IndexesRaspN"][4])])
+        swindow.comboBox_15.setCurrentText(settings["RaspList"][str(settings["IndexesRaspN"][5])])
+        swindow.comboBox_13.setCurrentText(settings["RaspList"][str(settings["IndexesRaspN"][6])])
+
         swindow.tableWidget.clear()
         swindow.tableWidget_2.clear()
         swindow.tableWidget_4.clear()
@@ -617,13 +830,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
         swindow.specdays = []
         swindow.listWidget_2.clear()
-        for item in settings["SpecialDays"]:
-            ids = settings["SpecialDays"][item]
+        for item in settings["SpecDays"]:
+            ids = settings["SpecDays"][item].split(":")
             tdate = item.split("/")
             s = str(tdate[0]) + "/"
             if int(tdate[1]) < 10:
                 s = s + "0"
-            s = s + tdate[1] + "/" + tdate[2] + " - " + settings["RaspList"][str(ids)]
+            s = s + tdate[1] + "/" + tdate[2] + " - " + settings["RaspList"][ids[0]] + " / "
+            s = s + settings["RaspList"][ids[1]]
             swindow.listWidget_2.addItem(s)
             swindow.specdays.append(s)
 
@@ -647,18 +861,23 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.portLineEdit.setText(settings["Port"]["Linux"])
         swindow.portSpeed.setCurrentText(str(settings["Port"]["Speed"]))
 
+        if settings["SimpleMode"]:
+            swindow.radioButton_2.setChecked(True)
+        else:
+            swindow.radioButton.setChecked(True)
+
         blockChange = False
 
         try:
-            del(self.CurrentIds)
+            del(swindow.CurrentIds)
         except:
             pass
         try:
-            del(self.currentSpecialDay)
+            del(swindow.currentSpecialDay)
         except:
             pass
         try:
-            del(self.currentSpecialRing)
+            del(swindow.currentSpecialRing)
         except:
             pass
 
@@ -676,6 +895,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         if settings["Mode"] != 0:
             settings["Mode"] = 0
             self.manualLightButton.setEnabled(False)
+            self.manualLightButton_2.setEnabled(False)
             saveSettings()
 
 
@@ -686,8 +906,10 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.amModeButton.setChecked(False)
         if settings["Mode"] != 1:
             settings["Mode"] = 1
-            self.manualLightOn = self.needLight
+            self.manualLightOn[0] = self.needLight[0]
+            self.manualLightOn[1] = self.needLight[1]
             self.manualLightButton.setEnabled(True)
+            self.manualLightButton_2.setEnabled(True)
             saveSettings()
 
 
@@ -698,24 +920,43 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.amModeButton.setChecked(True)
         if settings["Mode"] != 2:
             settings["Mode"] = 2
-            self.manualLightOn = self.needLight
+            self.manualLightOn[0] = self.needLight[0]
+            self.manualLightOn[1] = self.needLight[1]
             self.manualLightButton.setEnabled(True)
+            self.manualLightButton_2.setEnabled(True)
             saveSettings()
 
 
     def manualRingPress(self):
         logger("Manual ring pressed.")
-        self.startRing(0)
+        self.startRing(0, 0)
 
 
     def manualRingRelease(self):
         logger("Manual ring released.")
-        self.stopRing()
+        self.stopRing(0)
+
+    def manualRingNPress(self):
+        logger("Manual ring pressed.")
+        self.startRing(0, 1)
+
+
+    def manualRingNRelease(self):
+        logger("Manual ring released.")
+        self.stopRing(1)
 
 
     def manualLightClick(self):
-        self.manualLightOn = not self.manualLightOn
-        if self.manualLightOn:
+        self.manualLightOn[0] = not self.manualLightOn[0]
+        if self.manualLightOn[0]:
+            logger("Manual light enabled.")
+        else:
+            logger("Manual light disabled.")
+        self.UpdateStatus()
+
+    def manualLightNClick(self):
+        self.manualLightOn[1] = not self.manualLightOn[1]
+        if self.manualLightOn[1]:
             logger("Manual light enabled.")
         else:
             logger("Manual light disabled.")
@@ -757,6 +998,13 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.comboBox_5.currentTextChanged.connect(self.raspDayChanged)
         self.comboBox_6.currentTextChanged.connect(self.raspDayChanged)
         self.comboBox_8.currentTextChanged.connect(self.raspDayChanged)
+        self.comboBox_9.currentTextChanged.connect(self.raspDayChanged)
+        self.comboBox_10.currentTextChanged.connect(self.raspDayChanged)
+        self.comboBox_11.currentTextChanged.connect(self.raspDayChanged)
+        self.comboBox_12.currentTextChanged.connect(self.raspDayChanged)
+        self.comboBox_13.currentTextChanged.connect(self.raspDayChanged)
+        self.comboBox_14.currentTextChanged.connect(self.raspDayChanged)
+        self.comboBox_15.currentTextChanged.connect(self.raspDayChanged)
         self.addSpecialDayButton.clicked.connect(self.addSpecialDayButtonClick)
         self.deleteSpecialDayButton.clicked.connect(self.deleteSpecialDayButtonClick)
         self.addSpecialRingButton.clicked.connect(self.addSpecialRingButtonClick)
@@ -793,6 +1041,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.comboBox_6.clear()
         self.comboBox_7.clear()
         self.comboBox_8.clear()
+        self.comboBox_9.clear()
+        self.comboBox_10.clear()
+        self.comboBox_11.clear()
+        self.comboBox_12.clear()
+        self.comboBox_13.clear()
+        self.comboBox_14.clear()
+        self.comboBox_15.clear()
+        self.comboBox_16.clear()
         self.listWidget.clear()
         self.comboBox.addItem("Выходной")
         self.comboBox_2.addItem("Выходной")
@@ -802,6 +1058,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.comboBox_6.addItem("Выходной")
         self.comboBox_7.addItem("Выходной")
         self.comboBox_8.addItem("Выходной")
+        self.comboBox_9.addItem("Выходной")
+        self.comboBox_10.addItem("Выходной")
+        self.comboBox_11.addItem("Выходной")
+        self.comboBox_12.addItem("Выходной")
+        self.comboBox_13.addItem("Выходной")
+        self.comboBox_14.addItem("Выходной")
+        self.comboBox_15.addItem("Выходной")
+        self.comboBox_16.addItem("Выходной")
         for item in self.sett["RaspList"]:
             if item == "0":
                 continue
@@ -813,6 +1077,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.comboBox_6.addItem(self.sett["RaspList"][item])
             self.comboBox_7.addItem(self.sett["RaspList"][item])
             self.comboBox_8.addItem(self.sett["RaspList"][item])
+            self.comboBox_9.addItem(self.sett["RaspList"][item])
+            self.comboBox_10.addItem(self.sett["RaspList"][item])
+            self.comboBox_11.addItem(self.sett["RaspList"][item])
+            self.comboBox_12.addItem(self.sett["RaspList"][item])
+            self.comboBox_13.addItem(self.sett["RaspList"][item])
+            self.comboBox_14.addItem(self.sett["RaspList"][item])
+            self.comboBox_15.addItem(self.sett["RaspList"][item])
+            self.comboBox_16.addItem(self.sett["RaspList"][item])
             self.listWidget.addItem(self.sett["RaspList"][item])
 
         self.comboBox.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRasp"][0])])
@@ -822,6 +1094,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.comboBox_5.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRasp"][4])])
         self.comboBox_6.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRasp"][5])])
         self.comboBox_8.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRasp"][6])])
+
+        self.comboBox_10.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRaspN"][0])])
+        self.comboBox_14.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRaspN"][1])])
+        self.comboBox_11.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRaspN"][2])])
+        self.comboBox_9.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRaspN"][3])])
+        self.comboBox_12.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRaspN"][4])])
+        self.comboBox_15.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRaspN"][5])])
+        self.comboBox_13.setCurrentText(self.sett["RaspList"][str(self.sett["IndexesRaspN"][6])])
 
         self.tableWidget.clear()
         self.tableWidget_2.clear()
@@ -835,13 +1115,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
 
         self.specdays = []
         self.listWidget_2.clear()
-        for item in self.sett["SpecialDays"]:
-            ids = self.sett["SpecialDays"][item]
+        for item in self.sett["SpecDays"]:
+            ids = self.sett["SpecDays"][item].split(":")
             tdate = item.split("/")
             s = str(tdate[0]) + "/"
             if int(tdate[1]) < 10:
                 s = s + "0"
-            s = s + tdate[1] + "/" + tdate[2] + " - " + self.sett["RaspList"][str(ids)]
+            s = s + tdate[1] + "/" + tdate[2] + " - " + self.sett["RaspList"][ids[0]] + " / "
+            s = s + self.sett["RaspList"][ids[1]]
             self.listWidget_2.addItem(s)
             self.specdays.append(s)
 
@@ -883,13 +1164,18 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             d = int(sender.whatsThis())
         except ValueError:
             return
+
         s = sender.currentText()
         for item in self.sett["RaspList"]:
             if self.sett["RaspList"][item] == s:
                 ids = int(item)
                 break
 
-        self.sett["IndexesRasp"][d] = ids
+        if d < 7:
+            self.sett["IndexesRasp"][d] = ids
+        else:
+            d -= 7
+            self.sett["IndexesRaspN"][d] = ids
 
 
     #Выбор расписания в списке
@@ -1057,8 +1343,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             msg.exec_()
             return
 
-        for item in self.sett["SpecialDays"]:
-            if self.sett["SpecialDays"][item] == ids:
+        for item in self.sett["SpecDays"]:
+            if self.sett["SpecDays"][item] == ids:
                 msg = QMessageBox()
                 msg.setIcon(QMessageBox.Information)
                 msg.setText("Нельзя удалить расписание, так как оно назначено на один из дней календаря.")
@@ -1113,10 +1399,11 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         for item in self.sett["RaspList"]:
             if self.sett["RaspList"][item] == self.comboBox_7.currentText():
                 ids = int(item)
-                break
-        
+            if self.sett["RaspList"][item] == self.comboBox_16.currentText():
+                ids2 = int(item)
+
         s = str(day) + "/" + str(month) + "/" + str(year)
-        self.sett["SpecialDays"][s] = ids
+        self.sett["SpecDays"][s] = str(ids) + ":" + str(ids2)
 
         self.updateLists()
 
@@ -1127,7 +1414,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             csd = self.currentSpecialDay
         except AttributeError:
             return
-        self.sett["SpecialDays"].pop(csd)
+
+        self.sett["SpecDays"].pop(csd)
         self.updateLists()
 
 
@@ -1492,7 +1780,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
 
         settings = json.loads(json.dumps(self.sett))
         saveSettings()
-        window.idr = -1
+        window.idr = [-1, -1]
         swindow.close()
 
 

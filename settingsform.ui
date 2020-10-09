@@ -247,6 +247,97 @@
       <string>6</string>
      </property>
     </widget>
+    <widget class="QComboBox" name="comboBox_9">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>110</y>
+       <width>121</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="whatsThis">
+      <string>10</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_10">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>20</y>
+       <width>121</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="whatsThis">
+      <string>7</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_11">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>80</y>
+       <width>121</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="whatsThis">
+      <string>9</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_12">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>140</y>
+       <width>121</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="whatsThis">
+      <string>11</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_13">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>200</y>
+       <width>121</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="whatsThis">
+      <string>13</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_14">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>50</y>
+       <width>121</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="whatsThis">
+      <string>8</string>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_15">
+     <property name="geometry">
+      <rect>
+       <x>240</x>
+       <y>170</y>
+       <width>121</width>
+       <height>22</height>
+      </rect>
+     </property>
+     <property name="whatsThis">
+      <string>12</string>
+     </property>
+    </widget>
    </widget>
    <widget class="QWidget" name="tab">
     <attribute name="title">
@@ -751,9 +842,9 @@
     <widget class="QComboBox" name="comboBox_7">
      <property name="geometry">
       <rect>
-       <x>10</x>
+       <x>130</x>
        <y>240</y>
-       <width>321</width>
+       <width>201</width>
        <height>22</height>
       </rect>
      </property>
@@ -799,9 +890,45 @@
       <rect>
        <x>480</x>
        <y>10</y>
-       <width>291</width>
+       <width>471</width>
        <height>301</height>
       </rect>
+     </property>
+    </widget>
+    <widget class="QComboBox" name="comboBox_16">
+     <property name="geometry">
+      <rect>
+       <x>130</x>
+       <y>270</y>
+       <width>201</width>
+       <height>22</height>
+      </rect>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_25">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>240</y>
+       <width>111</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Основная школа</string>
+     </property>
+    </widget>
+    <widget class="QLabel" name="label_26">
+     <property name="geometry">
+      <rect>
+       <x>10</x>
+       <y>270</y>
+       <width>111</width>
+       <height>16</height>
+      </rect>
+     </property>
+     <property name="text">
+      <string>Начальная школа</string>
      </property>
     </widget>
    </widget>
@@ -1159,6 +1286,77 @@
         <string>115200</string>
        </property>
       </item>
+     </widget>
+    </widget>
+    <widget class="QGroupBox" name="groupBox_2">
+     <property name="geometry">
+      <rect>
+       <x>390</x>
+       <y>90</y>
+       <width>321</width>
+       <height>191</height>
+      </rect>
+     </property>
+     <property name="title">
+      <string>Режим работы</string>
+     </property>
+     <widget class="QRadioButton" name="radioButton">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>20</y>
+        <width>301</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Разное расписание для основной и начальной школы</string>
+      </property>
+     </widget>
+     <widget class="QRadioButton" name="radioButton_2">
+      <property name="geometry">
+       <rect>
+        <x>10</x>
+        <y>100</y>
+        <width>301</width>
+        <height>17</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Одно расписание для всей школы</string>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_23">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>40</y>
+        <width>261</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Для основной и начальной школы действует индивидуальное расписание звонков и освещения.</string>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
+     </widget>
+     <widget class="QLabel" name="label_24">
+      <property name="geometry">
+       <rect>
+        <x>40</x>
+        <y>120</y>
+        <width>261</width>
+        <height>41</height>
+       </rect>
+      </property>
+      <property name="text">
+       <string>Расписание и элементы управления начальной школы игнорируются. Основное расписание применяется для всей школы.</string>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
      </widget>
     </widget>
    </widget>
