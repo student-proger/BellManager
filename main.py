@@ -3,7 +3,6 @@
 '''
 TO DO:
 * Чистить старые SpecDays и SpecialRings
-+ Разделение на начальную и основную школу
 * Подкорректировать все подсказки к элементам управления
 + Сделать автозапуск
 
@@ -12,21 +11,10 @@ TO DO:
 VER = "2.0"
 
 import os
-
-def isWindows():
-    if os.name == "nt":
-        return True
-    else:
-        return False
-
 import sys  # sys нужен для передачи argv в QApplication
 from datetime import datetime
 import time
 import json
-if isWindows():
-    print("OS: Windows")
-else:
-    print("OS: Linux")
 
 import serial #pyserial
 #Qt
@@ -143,6 +131,13 @@ def logger(msg):
     f.write(s + "\n")
     print(s)
     f.close()
+
+
+def isWindows():
+    if os.name == "nt":
+        return True
+    else:
+        return False
 
 
 def saveSettings():
@@ -1799,6 +1794,12 @@ def main():
     global swindow
     global window
     global aboutwindow
+
+    if isWindows():
+        print("OS: Windows")
+    else:
+        print("OS: Linux")
+
     app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
     window = SchoolRingerApp()  # Создаём объект класса SchoolRingerApp
     window.show()  # Показываем окно
