@@ -1,11 +1,10 @@
 #!/usr/bin/python3
 
 '''
-TO DO:
-* Чистить старые SpecDays и SpecialRings
-* Подкорректировать все подсказки к элементам управления
-+ Сделать автозапуск
-
+* Author:         Gladyshev Dmitriy (2020) 
+* 
+* Design Name:    BellManager
+* Description:    Программа для управления освещением и звонками в школе
 '''
 
 VER = "2.0"
@@ -353,13 +352,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
         nowLesson = [False, False]
 
+        h = int(datetime.strftime(datetime.now(), "%H"))
+        m = int(datetime.strftime(datetime.now(), "%M"))
+        day = int(datetime.strftime(datetime.now(), "%d"))
+        month = int(datetime.strftime(datetime.now(), "%m"))
+        year = int(datetime.strftime(datetime.now(), "%Y"))
+
         if self.idr[0] != 0:
             #Проверка совпадений в расписании уроков
-            h = int(datetime.strftime(datetime.now(), "%H"))
-            m = int(datetime.strftime(datetime.now(), "%M"))
-            day = int(datetime.strftime(datetime.now(), "%d"))
-            month = int(datetime.strftime(datetime.now(), "%m"))
-            year = int(datetime.strftime(datetime.now(), "%Y"))
             mtime = h * 60 + m
             needRing[0] = False
             self.needLight[0] = True
@@ -420,11 +420,6 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
         if self.idr[1] != 0:
             #Проверка совпадений в расписании уроков началки
-            h = int(datetime.strftime(datetime.now(), "%H"))
-            m = int(datetime.strftime(datetime.now(), "%M"))
-            day = int(datetime.strftime(datetime.now(), "%d"))
-            month = int(datetime.strftime(datetime.now(), "%m"))
-            year = int(datetime.strftime(datetime.now(), "%Y"))
             mtime = h * 60 + m
             needRing[1] = False
             self.needLight[1] = True

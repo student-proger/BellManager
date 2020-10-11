@@ -1,3 +1,26 @@
+/*******************************************************************************
+* Author:         Gladyshev Dmitriy (2020) 
+* 
+* Design Name:    BellManager
+* Target Devices: Arduino
+* Tool versions:  Arduino 1.8.5 
+* Description:    Контроллер управления освещением и звонками в школе
+* Version:        1.0
+* 
+*******************************************************************************/
+
+#define PIN_RING_AB 2
+#define PIN_RING_C  3
+#define PIN_LIGHT_A 5
+#define PIN_LIGHT_B 6
+#define PIN_LIGHT_C 7
+
+#define PIN_LED_RING_AB  17
+#define PIN_LED_RING_C   15
+#define PIN_LED_LIGHT_AB 14
+#define PIN_LED_LIGHT_C  18
+#define PIN_LED_RX       19
+
 bool LightOn = false;
 bool LightNachalkaOn = false;
 bool inits = false;
@@ -10,65 +33,57 @@ char buf[5] = {' ', ' ', ' ', ' ', ' '};
 void resetWatchDog()
 {
   lastComm = millis();
-  digitalWrite(19, HIGH);
+  digitalWrite(PIN_LED_RX, HIGH);
 }
 
 void watchDog()
 {
   if (millis() - lastComm > 5000)
   {
-    digitalWrite(7, LOW);
-    digitalWrite(6, LOW);
-    digitalWrite(5, LOW);
-    digitalWrite(3, HIGH);
-    digitalWrite(2, HIGH);
+    digitalWrite(PIN_LIGHT_C, LOW);
+    digitalWrite(PIN_LIGHT_B, LOW);
+    digitalWrite(PIN_LIGHT_A, LOW);
+    digitalWrite(PIN_RING_C, HIGH);
+    digitalWrite(PIN_RING_AB, HIGH);
 
-    digitalWrite(14, LOW);
-    digitalWrite(15, LOW);
-    digitalWrite(17, LOW);
-    digitalWrite(18, LOW);
-    digitalWrite(19, LOW);
+    digitalWrite(PIN_LED_LIGHT_AB, LOW);
+    digitalWrite(PIN_LED_RING_C, LOW);
+    digitalWrite(PIN_LED_RING_AB, LOW);
+    digitalWrite(PIN_LED_LIGHT_C, LOW);
+    digitalWrite(PIN_LED_RX, LOW);
     watchDogEnabled = false;
   }
   if (millis() - lastComm > 100)
   {
-    digitalWrite(19, LOW);
+    digitalWrite(PIN_LED_RX, LOW);
   }
 }
 
 void setup() {
   Serial.begin(9600);
-  pinMode(7, OUTPUT);
-  pinMode(6, OUTPUT);
-  pinMode(5, OUTPUT);
-  pinMode(3, OUTPUT);
-  pinMode(2, OUTPUT);
+  pinMode(PIN_LIGHT_C, OUTPUT);
+  pinMode(PIN_LIGHT_B, OUTPUT);
+  pinMode(PIN_LIGHT_A, OUTPUT);
+  pinMode(PIN_RING_C, OUTPUT);
+  pinMode(PIN_RING_AB, OUTPUT);
 
-  digitalWrite(7, LOW);
-  digitalWrite(6, LOW);
-  digitalWrite(5, LOW);
-  digitalWrite(3, HIGH);
-  digitalWrite(2, HIGH);
+  digitalWrite(PIN_LIGHT_C, LOW);
+  digitalWrite(PIN_LIGHT_B, LOW);
+  digitalWrite(PIN_LIGHT_A, LOW);
+  digitalWrite(PIN_RING_C, HIGH);
+  digitalWrite(PIN_RING_AB, HIGH);
 
-  pinMode(14, OUTPUT);
-  pinMode(15, OUTPUT);
-  pinMode(17, OUTPUT);
-  pinMode(18, OUTPUT);
-  pinMode(19, OUTPUT);
+  pinMode(PIN_LED_LIGHT_AB, OUTPUT);
+  pinMode(PIN_LED_RING_C, OUTPUT);
+  pinMode(PIN_LED_RING_AB, OUTPUT);
+  pinMode(PIN_LED_LIGHT_C, OUTPUT);
+  pinMode(PIN_LED_RX, OUTPUT);
 
-  digitalWrite(14, LOW);
-  digitalWrite(15, LOW);
-  digitalWrite(17, LOW);
-  digitalWrite(18, LOW);
-  digitalWrite(19, LOW);
-
-  /* 14 - 2
-   *  15 - 3
-   *  16 - 
-   *  17 - 4
-   *  18 - 1
-   *  19 - 5
-   */
+  digitalWrite(PIN_LED_LIGHT_AB, LOW);
+  digitalWrite(PIN_LED_RING_C, LOW);
+  digitalWrite(PIN_LED_RING_AB, LOW);
+  digitalWrite(PIN_LED_LIGHT_C, LOW);
+  digitalWrite(PIN_LED_RX, LOW);
 }
 
 void loop() {
@@ -92,58 +107,62 @@ void loop() {
     }
     else
     {
-
+      //Выключение звонка в основной школе
       if (inChar == 'q')
       {
-        digitalWrite(2, HIGH);
-        digitalWrite(17, LOW);
+        digitalWrite(PIN_RING_AB, HIGH);
+        digitalWrite(PIN_LED_RING_AB, LOW);
         resetWatchDog();
       }
+      //Включение звонка в основной школе
       if (inChar == 'Q')
       {
-        digitalWrite(2, LOW);
-        digitalWrite(17, HIGH);
+        digitalWrite(PIN_RING_AB, LOW);
+        digitalWrite(PIN_LED_RING_AB, HIGH);
         resetWatchDog();
       }
-  
+      //Выключение звонка в начальной школе
       if (inChar == 'w')
       {
-        digitalWrite(3, HIGH);
-        digitalWrite(15, LOW);
+        digitalWrite(PIN_RING_C, HIGH);
+        digitalWrite(PIN_LED_RING_C, LOW);
         resetWatchDog();
       }
+      //Включение звонка в начальной школе
       if (inChar == 'W')
       {
-        digitalWrite(3, LOW);
-        digitalWrite(15, HIGH);
+        digitalWrite(PIN_RING_C, LOW);
+        digitalWrite(PIN_LED_RING_C, HIGH);
         resetWatchDog();
       }
-  
+      //Включение освещения в основной школе
       if (inChar == 'E')
       {
-        digitalWrite(5, HIGH);
-        digitalWrite(6, HIGH);
-        digitalWrite(14, HIGH);
+        digitalWrite(PIN_LIGHT_A, HIGH);
+        digitalWrite(PIN_LIGHT_B, HIGH);
+        digitalWrite(PIN_LED_LIGHT_AB, HIGH);
         resetWatchDog();
       }
+      //Выключение освещения в основной школе
       if (inChar == 'e')
       {
-        digitalWrite(5, LOW);
-        digitalWrite(6, LOW);
-        digitalWrite(14, LOW);
+        digitalWrite(PIN_LIGHT_A, LOW);
+        digitalWrite(PIN_LIGHT_B, LOW);
+        digitalWrite(PIN_LED_LIGHT_AB, LOW);
         resetWatchDog();
       }
-  
+      //Включение освещения в начальной школе
       if (inChar == 'R')
       {
-        digitalWrite(7, HIGH);
-        digitalWrite(18, HIGH);
+        digitalWrite(PIN_LIGHT_C, HIGH);
+        digitalWrite(PIN_LED_LIGHT_C, HIGH);
         resetWatchDog();
       }
+      //Выключение освещения в начальной школе
       if (inChar == 'r')
       {
-        digitalWrite(7, LOW);
-        digitalWrite(18, LOW);
+        digitalWrite(PIN_LIGHT_C, LOW);
+        digitalWrite(PIN_LED_LIGHT_C, LOW);
         resetWatchDog();
       }
     }
