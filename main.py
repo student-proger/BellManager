@@ -211,6 +211,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         # Это здесь нужно для доступа к переменным, методам
         # и т.д. в файле mainform.py
         super().__init__()
+        self.ringtimer = [QtCore.QTimer(), QtCore.QTimer()]
         #Флаги включения звонка и освещения
         self.RingOn = [False, False]
         self.LightOn = [False, False]
@@ -685,8 +686,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
     def startRing(self, duration, index):
         if duration != 0:
-            self.ringtimer[index] = QtCore.QTimer()
-            self.ringtimer[index].timeout.connect(self.stopRing(index))
+            self.ringtimer[index].timeout.connect(lambda: self.stopRing(index))
             self.ringtimer[index].start(duration * 1000)
         logger("Ring start.")
         self.RingOn[index] = True
