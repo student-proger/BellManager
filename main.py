@@ -253,8 +253,6 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         loadSettings()
 
         #Для обратной совместимости с предыдущими версиями проверяем настройки
-        if not "SimpleMode" in settings:
-            settings["SimpleMode"] = False
         if not "IndexesRaspN" in settings:
             settings["IndexesRaspN"] = [0, 0, 0, 0, 0, 0, 0]
         if not "SpecDays" in settings:
@@ -851,11 +849,6 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.portLineEdit.setText(settings["Port"]["Linux"])
         swindow.portSpeed.setCurrentText(str(settings["Port"]["Speed"]))
 
-        if settings["SimpleMode"]:
-            swindow.radioButton_2.setChecked(True)
-        else:
-            swindow.radioButton.setChecked(True)
-
         blockChange = False
 
         try:
@@ -1005,6 +998,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.portComboBox.addItem("COM" + str(i))
 
         self.autoStartCheckbox.setVisible(False)
+        self.groupBox_2.setVisible(False)
 
 
     #Обновление списков после изменений в списках расписаний
