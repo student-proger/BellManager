@@ -1,14 +1,15 @@
-![https://img.shields.io/badge/Python-v3-blue](https://img.shields.io/badge/Python-v3-blue)
+![Python v3](https://img.shields.io/badge/Python-v3-blue)
 
 # BellManager
 Программа для управления звонками и освещением в школе
+Подробности о проекте: [https://19dx.ru/2020/10/light-and-bell-school-controller/](https://19dx.ru/2020/10/light-and-bell-school-controller/)
 
 ## Аппаратное обеспечение
 Управляющий контроллер: Arduino UNO / Arduino Mega    
 Контроллеры освещения: К2010 или аналогичные (используется шина управления 4-20 мА)
 
 ## Схема управляющего контроллера
-
+![Схема управляющего контроллера](https://19dx.ru/wp-content/uploads/2020/10/BellManager.png)
 
 ## Протокол обмена данными
 Приложение отправляет на контроллер следующие текстовые команды:    
@@ -30,3 +31,4 @@
 - [ ] Чистить старые SpecDays и SpecialRings
 - [ ] Подкорректировать все подсказки к элементам управления
 - [ ] Сделать автозапуск
+- [ ] Собрать бинарник и установщик

@@ -1,4 +1,7 @@
 __pycache__/
+build/
+dist/
 scheme/
 log.txt
+main.spec
 settings.json
