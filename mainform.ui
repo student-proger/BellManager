@@ -107,6 +107,12 @@
         <iconset>
          <normaloff>images/info_24px.png</normaloff>images/info_24px.png</iconset>
        </property>
+       <property name="iconSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
       </widget>
      </item>
     </layout>
@@ -116,7 +122,7 @@
      <rect>
       <x>430</x>
       <y>0</y>
-      <width>530</width>
+      <width>542</width>
       <height>51</height>
      </rect>
     </property>
@@ -128,6 +134,16 @@
        </property>
        <property name="text">
         <string>Авто</string>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>images/flash_auto_24px.png</normaloff>images/flash_auto_24px.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
        </property>
        <property name="checkable">
         <bool>true</bool>
@@ -145,6 +161,16 @@
        <property name="text">
         <string>Ручной</string>
        </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>images/flash_off_24px.png</normaloff>images/flash_off_24px.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
        <property name="checkable">
         <bool>true</bool>
        </property>
@@ -161,6 +187,16 @@
        <property name="text">
         <string>Полуавтомат</string>
        </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>images/lightning_bolt_24px.png</normaloff>images/lightning_bolt_24px.png</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
        <property name="checkable">
         <bool>true</bool>
        </property>
@@ -176,6 +212,9 @@
       <width>311</width>
       <height>16</height>
      </rect>
+    </property>
+    <property name="toolTip">
+     <string>Состояние подключения контроллера</string>
     </property>
     <property name="text">
      <string>TextLabel</string>
@@ -397,6 +436,9 @@
         <height>31</height>
        </rect>
       </property>
+      <property name="toolTip">
+       <string>Ручная подача звонка</string>
+      </property>
       <property name="text">
        <string>Включить звонок</string>
       </property>
@@ -422,6 +464,9 @@
         <width>231</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="toolTip">
+       <string>Ручное управление освещением</string>
       </property>
       <property name="text">
        <string>Включить/выключить освещение</string>
@@ -786,6 +831,9 @@
         <height>31</height>
        </rect>
       </property>
+      <property name="toolTip">
+       <string>Ручная подача звонка</string>
+      </property>
       <property name="text">
        <string>Включить звонок</string>
       </property>
@@ -811,6 +859,9 @@
         <width>231</width>
         <height>31</height>
        </rect>
+      </property>
+      <property name="toolTip">
+       <string>Ручное управление освещением</string>
       </property>
       <property name="text">
        <string>Включить/выключить освещение</string>

@@ -14,6 +14,8 @@ class Ui_AboutDialog(object):
     def setupUi(self, AboutDialog):
         AboutDialog.setObjectName("AboutDialog")
         AboutDialog.resize(363, 178)
+        AboutDialog.setMinimumSize(QtCore.QSize(363, 178))
+        AboutDialog.setMaximumSize(QtCore.QSize(363, 178))
         AboutDialog.setWindowOpacity(1.0)
         self.buttonBox = QtWidgets.QDialogButtonBox(AboutDialog)
         self.buttonBox.setGeometry(QtCore.QRect(270, 10, 81, 141))

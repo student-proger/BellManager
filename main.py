@@ -7,7 +7,7 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.0"
+VER = "2.0.1"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
