@@ -131,6 +131,14 @@ blockChange = False
 lastErrorPort = False
 
 
+def messageBox(title, s):
+    msg = QMessageBox()
+    msg.setIcon(QMessageBox.Information)
+    msg.setText(s)
+    msg.setWindowTitle(title)
+    msg.exec_()
+
+
 def logger(msg):
     now = datetime.now()
     s = datetime.strftime(datetime.now(), "%d.%m.%Y  %H:%M:%S")
@@ -150,8 +158,12 @@ def isWindows():
 
 def saveSettings():
     logger("Saving settings.")
-    with open('settings.json', 'w') as f:
-        json.dump(settings, f)
+    try:
+        with open('settings.json', 'w') as f:
+            json.dump(settings, f)
+    except:
+        logger("FAIL: Saving settings.")
+        messageBox("Критическая ошибка", "Ошибка сохранения файла настроек. Возможно нет прав доступа на запись.")
 
 
 def loadSettings():
@@ -162,6 +174,9 @@ def loadSettings():
             settings = json.load(f)
     except FileNotFoundError:
         logger("Settings not found. Using default.")
+    except:
+        logger("FAIL: Loading settings.")
+        messageBox("Критическая ошибка", "Ошибка чтения файла настроек. Возможно нет прав доступа на чтение.")
 
 
 def openPort():
@@ -1310,12 +1325,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
                     self.updateLists()
                     break
                 else:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Information)
-                    msg.setText("Расписание с таким именем уже существует")
-                    #msg.setInformativeText("This is additional information")
-                    msg.setWindowTitle("Ошибка")
-                    msg.exec_()
+                    messageBox("Ошибка", "Расписание с таким именем уже существует")
             else:
                 break
 
@@ -1327,23 +1337,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         except AttributeError:
             return
 
-        if int(ids) in self.sett["IndexesRasp"]:
-            msg = QMessageBox()
-            msg.setIcon(QMessageBox.Information)
-            msg.setText("Нельзя удалить расписание, так как оно назначено на один из дней недели.")
-            #msg.setInformativeText("This is additional information")
-            msg.setWindowTitle("Ошибка")
-            msg.exec_()
+        if (int(ids) in self.sett["IndexesRasp"]) or (int(ids) in self.sett["IndexesRaspN"]):
+            messageBox("Ошибка", "Нельзя удалить расписание, так как оно назначено на один из дней недели.")
             return
 
         for item in self.sett["SpecDays"]:
-            if self.sett["SpecDays"][item] == ids:
-                msg = QMessageBox()
-                msg.setIcon(QMessageBox.Information)
-                msg.setText("Нельзя удалить расписание, так как оно назначено на один из дней календаря.")
-                #msg.setInformativeText("This is additional information")
-                msg.setWindowTitle("Ошибка")
-                msg.exec_()
+            k = self.sett["SpecDays"][item].split(":")
+            if (k[0] == ids) or (k[1] == ids):
+                messageBox("Ошибка", "Нельзя удалить расписание, так как оно назначено на один из дней календаря.")
                 return
 
         msg = QMessageBox()
@@ -1372,12 +1373,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
                     self.updateLists()
                     break
                 else:
-                    msg = QMessageBox()
-                    msg.setIcon(QMessageBox.Information)
-                    msg.setText("Расписание с таким именем уже существует")
-                    #msg.setInformativeText("This is additional information")
-                    msg.setWindowTitle("Ошибка")
-                    msg.exec_()
+                    messageBox("Ошибка", "Расписание с таким именем уже существует")
             else:
                 break
 
