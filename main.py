@@ -7,7 +7,7 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.0.1"
+VER = "2.0.2"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
@@ -140,13 +140,15 @@ def messageBox(title, s):
 
 
 def logger(msg):
-    now = datetime.now()
-    s = datetime.strftime(datetime.now(), "%d.%m.%Y  %H:%M:%S")
-    s = s + " > " + msg
-    f = open("log.txt", "at")
-    f.write(s + "\n")
-    print(s)
-    f.close()
+    if settings["EnableLog"]:
+        now = datetime.now()
+        ss = datetime.strftime(datetime.now(), "%Y-%m")
+        s = datetime.strftime(datetime.now(), "%d.%m.%Y  %H:%M:%S")
+        s = s + " > " + msg
+        f = open("log/log" + ss + ".txt", "at")
+        f.write(s + "\n")
+        print(s)
+        f.close()
 
 
 def isWindows():
@@ -157,25 +159,23 @@ def isWindows():
 
 
 def saveSettings():
-    logger("Saving settings.")
+    logger("Сохранение настроек.")
     try:
         with open('settings.json', 'w') as f:
             json.dump(settings, f)
     except:
-        logger("FAIL: Saving settings.")
+        logger("ОШИБКА: Не удалось сохранить настройки.")
         messageBox("Критическая ошибка", "Ошибка сохранения файла настроек. Возможно нет прав доступа на запись.")
 
 
 def loadSettings():
     global settings
-    logger("Loading settings.")
     try:
         with open('settings.json') as f:
             settings = json.load(f)
     except FileNotFoundError:
-        logger("Settings not found. Using default.")
+        pass
     except:
-        logger("FAIL: Loading settings.")
         messageBox("Критическая ошибка", "Ошибка чтения файла настроек. Возможно нет прав доступа на чтение.")
 
 
@@ -193,7 +193,7 @@ def openPort():
     except:
         ok = False
     if ok:
-        logger("Opened COM-port: " + ser.name)
+        logger("Открытие COM-порта: " + ser.name)
         lastErrorPort = False
         time.sleep(2)
         writePort(b'Y')
@@ -203,7 +203,7 @@ def openPort():
         writePort(b'K')
     else:
         if lastErrorPort == False:
-            logger("FAIL: Opening COM-port.")
+            logger("ОШИБКА: Не удалось открыть COM-порт.")
             lastErrorPort = True
     return ok
 
@@ -223,7 +223,7 @@ def writePort(msg):
         ser.write(msg)
     except:
         if lastErrorPort == False:
-            logger("FAIL: Writing to COM-port.")
+            logger("ОШИБКА: Не удалось отправить информацию в COM-порт.")
             lastErrorPort = True
         closePort()
         openPort()
@@ -235,6 +235,25 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         # Это здесь нужно для доступа к переменным, методам
         # и т.д. в файле mainform.py
         super().__init__()
+
+        #Читаем настройки
+        loadSettings()
+
+        #Для обратной совместимости с предыдущими версиями проверяем настройки
+        if not "IndexesRaspN" in settings:
+            settings["IndexesRaspN"] = [0, 0, 0, 0, 0, 0, 0]
+        if not "SpecDays" in settings:
+            settings["SpecDays"] = {}
+        if not "EnableLog" in settings:
+            settings["EnableLog"] = True
+
+        logger("********** Запуск приложения **********")
+        if isWindows():
+            print("OS: Windows")
+            #print(sys.argv[0])
+        else:
+            print("OS: Linux")
+
         self.ringtimer = [QtCore.QTimer(), QtCore.QTimer()]
         #Флаги включения звонка и освещения
         self.RingOn = [False, False]
@@ -273,31 +292,23 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.label.setText("")
 
         self.setWindowTitle("Bell Manager v" + VER)
-        #Читаем настройки
-        loadSettings()
-
-        #Для обратной совместимости с предыдущими версиями проверяем настройки
-        if not "IndexesRaspN" in settings:
-            settings["IndexesRaspN"] = [0, 0, 0, 0, 0, 0, 0]
-        if not "SpecDays" in settings:
-            settings["SpecDays"] = {}
 
         if settings["Mode"] == 0:
-            logger("Auto mode enabled.")
+            logger("Автоматический режим включён.")
             self.manualModeButton.setChecked(False)
             self.autoModeButton.setChecked(True)
             self.amModeButton.setChecked(False)
             self.manualLightButton.setEnabled(False)
             self.manualLightButton_2.setEnabled(False)
         elif settings["Mode"] == 1:
-            logger("Manual mode enabled.")
+            logger("Ручной режим включён.")
             self.manualModeButton.setChecked(True)
             self.autoModeButton.setChecked(False)
             self.amModeButton.setChecked(False)
             self.manualLightButton.setEnabled(True)
             self.manualLightButton_2.setEnabled(True)
         else:
-            logger("A/m mode enabled.")
+            logger("Полуавтоматический режим включён.")
             self.manualModeButton.setChecked(False)
             self.autoModeButton.setChecked(False)
             self.amModeButton.setChecked(True)
@@ -336,7 +347,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         mt = int(datetime.strftime(datetime.now(), "%M"))
         if (ht == 0) and (mt < 1) and (settings["AutoOnNewDay"] == True):
             if settings["Mode"] != 0:
-                logger("Auto mode enabled.")
+                logger("Автоматический режим включён.")
                 self.manualModeButton.setChecked(False)
                 self.autoModeButton.setChecked(True)
                 self.amModeButton.setChecked(False)
@@ -355,7 +366,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             #Расписание изменилось
             self.idr[0] = newidr[0]
             self.label_2.setText("Текущее расписание: " + settings["RaspList"][str(self.idr[0])])
-            logger("Setting timetable: " + settings["RaspList"][str(self.idr[0])])
+            logger("Установка расписания: " + settings["RaspList"][str(self.idr[0])])
             changed = True
             if self.idr[0] != 0:
                 self.crasp[0] = settings["Rasp"][str(self.idr[0])]
@@ -365,7 +376,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             #Расписание изменилось
             self.idr[1] = newidr[1]
             self.label_11.setText("Текущее расписание: " + settings["RaspList"][str(self.idr[1])])
-            logger("Setting timetable N: " + settings["RaspList"][str(self.idr[1])])
+            logger("Установка расписания в началке: " + settings["RaspList"][str(self.idr[1])])
             changed = True
             if self.idr[1] != 0:
                 self.crasp[1] = settings["Rasp"][str(self.idr[1])]
@@ -710,7 +721,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         if duration != 0:
             self.ringtimer[index].timeout.connect(lambda: self.stopRing(index))
             self.ringtimer[index].start(duration * 1000)
-        logger("Ring start.")
+        logger("Звонок включен.")
         self.RingOn[index] = True
         if index == 0:
             writePort(b'Q')
@@ -724,7 +735,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.ringtimer[index].stop()
         except AttributeError:
             pass
-        logger("Ring stop.")
+        logger("Звонок выключен.")
         self.RingOn[index] = False
         if index == 0:
             writePort(b'q')
@@ -736,7 +747,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
     def LightEnable(self, index):
         if self.lastLightState[index] == False:
             self.lastLightState[index] = True
-            logger("Enable light.")
+            logger("Освещение включено.")
         if index == 0:
             writePort(b'E')
         else:
@@ -746,7 +757,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
     def LightDisable(self, index):
         if self.lastLightState[index] == True:
             self.lastLightState[index] = False
-            logger("Disable light.")
+            logger("Освещение выключено.")
         if index == 0:
             writePort(b'e')
         else:
@@ -755,7 +766,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
     def openSettings(self):
         global blockChange
-        logger("Open settings.")
+        logger("Открытие настроек.")
         blockChange = True
         swindow.comboBox.clear()
         swindow.comboBox_2.clear()
@@ -813,6 +824,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.spinBox.setValue(settings["RingDuration"])
         swindow.spinBox_2.setValue(settings["LightDelay"])
         swindow.autoOnNewDayCheckbox.setChecked(settings["AutoOnNewDay"])
+        swindow.logCheckBox.setChecked(settings["EnableLog"])
 
         swindow.comboBox.setCurrentText(settings["RaspList"][str(settings["IndexesRasp"][0])])
         swindow.comboBox_2.setCurrentText(settings["RaspList"][str(settings["IndexesRasp"][1])])
@@ -895,7 +907,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def autoModeButtonClick(self):
-        logger("Auto mode enabled.")
+        logger("Автоматический режим включён.")
         self.manualModeButton.setChecked(False)
         self.autoModeButton.setChecked(True)
         self.amModeButton.setChecked(False)
@@ -907,7 +919,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def manualModeButtonClick(self):
-        logger("Manual mode enabled.")
+        logger("Ручной режим включён.")
         self.manualModeButton.setChecked(True)
         self.autoModeButton.setChecked(False)
         self.amModeButton.setChecked(False)
@@ -921,7 +933,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def amModeButtonClick(self):
-        logger("A/m mode enabled.")
+        logger("Полуавтоматический режим включён.")
         self.manualModeButton.setChecked(False)
         self.autoModeButton.setChecked(False)
         self.amModeButton.setChecked(True)
@@ -935,38 +947,38 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def manualRingPress(self):
-        logger("Manual ring pressed.")
+        logger("Ручное нажатие кнопки звонка.")
         self.startRing(0, 0)
 
 
     def manualRingRelease(self):
-        logger("Manual ring released.")
+        logger("Кнопка отпущена.")
         self.stopRing(0)
 
     def manualRingNPress(self):
-        logger("Manual ring pressed.")
+        logger("Ручное нажатие кнопки звонка в началке.")
         self.startRing(0, 1)
 
 
     def manualRingNRelease(self):
-        logger("Manual ring released.")
+        logger("Кнопка отпущена.")
         self.stopRing(1)
 
 
     def manualLightClick(self):
         self.manualLightOn[0] = not self.manualLightOn[0]
         if self.manualLightOn[0]:
-            logger("Manual light enabled.")
+            logger("Ручное включение освещения в основной школе.")
         else:
-            logger("Manual light disabled.")
+            logger("Ручное выключение освещения в основной школе.")
         self.UpdateStatus()
 
     def manualLightNClick(self):
         self.manualLightOn[1] = not self.manualLightOn[1]
         if self.manualLightOn[1]:
-            logger("Manual light enabled.")
+            logger("Ручное включение освещения в начальной школе.")
         else:
-            logger("Manual light disabled.")
+            logger("Ручное выключение освещения в начальной школе.")
         self.UpdateStatus()
 
     def aboutButtonClick(self):
@@ -1747,30 +1759,35 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
 
     #Нажатие кнопки "Отмена"
     def buttonCancelClick(self):
-        logger("Settings closed. Canceled.")
-        swindow.close()
+        logger("Настройки закрыты. Отмена.")
+        self.close()
 
 
     #Нажатие кнопки "OK"
     def buttonOKClick(self):
         global settings
-        logger("Settings closed. Saved.")
+        logger("Настройки закрыты. Применение.")
 
-        self.sett["Port"]["Win"] = swindow.portComboBox.currentText()
-        self.sett["Port"]["Linux"] = swindow.portLineEdit.text()
-        self.sett["Port"]["Speed"] = int(swindow.portSpeed.currentText())
+        self.sett["Port"]["Win"] = self.portComboBox.currentText()
+        self.sett["Port"]["Linux"] = self.portLineEdit.text()
+        self.sett["Port"]["Speed"] = int(self.portSpeed.currentText())
 
-        self.sett["RingDuration"] = swindow.spinBox.value()
-        self.sett["LightDelay"] = swindow.spinBox_2.value()
-        if swindow.autoOnNewDayCheckbox.checkState():
+        self.sett["RingDuration"] = self.spinBox.value()
+        self.sett["LightDelay"] = self.spinBox_2.value()
+        if self.autoOnNewDayCheckbox.checkState():
             self.sett["AutoOnNewDay"] = True
         else:
             self.sett["AutoOnNewDay"] = False
 
+        if self.logCheckBox.checkState():
+            self.sett["EnableLog"] = True
+        else:
+            self.sett["EnableLog"] = False
+
         settings = json.loads(json.dumps(self.sett))
         saveSettings()
         window.idr = [-1, -1]
-        swindow.close()
+        self.close()
 
 
 
@@ -1784,16 +1801,15 @@ class AboutApp(QtWidgets.QDialog, aboutform.Ui_AboutDialog):
         
         
 def main():
-    logger("********** Starting application. **********")
     global swindow
     global window
     global aboutwindow
 
-    if isWindows():
-        print("OS: Windows")
-        #print(sys.argv[0])
-    else:
-        print("OS: Linux")
+    try:
+        if not os.path.exists("log"):
+            os.mkdir("log")
+    except:
+        pass
 
     app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
     window = SchoolRingerApp()  # Создаём объект класса SchoolRingerApp
@@ -1802,7 +1818,7 @@ def main():
     aboutwindow = AboutApp()
     
     app.exec_()  # и запускаем приложение
-    logger("********** Terminating application. **********")
+    logger("********** Завершение приложения **********")
 
 
 if __name__ == '__main__':
