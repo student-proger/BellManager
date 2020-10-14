@@ -1,7 +1,7 @@
 ![Python v3](https://img.shields.io/badge/Python-v3-blue)
 
 # BellManager
-Программа для управления звонками и освещением в школе
+Программа для управления звонками и освещением в школе    
 Подробности о проекте: [https://19dx.ru/2020/10/light-and-bell-school-controller/](https://19dx.ru/2020/10/light-and-bell-school-controller/)
 
 ## Аппаратное обеспечение
