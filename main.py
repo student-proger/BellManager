@@ -7,7 +7,7 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.0.2"
+VER = "2.0.3"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
@@ -320,6 +320,11 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.timer.timeout.connect(self.on_timer)
         self.timer.start(1000)
 
+        #Запускаем таймер сборщика мусора
+        self.timerGC = QtCore.QTimer()
+        self.timerGC.timeout.connect(self.garbageCollector)
+        self.timerGC.start(3600000)
+
         self.pixmapRed = QPixmap("images/red.png")
         self.pixmapGreen = QPixmap("images/green.png")
         self.statusR.setPixmap(self.pixmapRed)
@@ -557,6 +562,43 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         else:
             self.LightDisable(1)
         self.UpdateStatus()
+
+
+    #Сборщик мусора. Удаляет старые данные из настроек.
+    def garbageCollector(self):
+        day = int(datetime.strftime(datetime.now(), "%d"))
+        month = int(datetime.strftime(datetime.now(), "%m"))
+        year = int(datetime.strftime(datetime.now(), "%Y"))
+        changed = False
+
+        while (1):
+            found = False
+            for item in settings["SpecDays"]:
+                d = list(map(int, item.split("/")))
+                if (d[2] < year) or ((d[2] == year) and (d[1] < month)) or ((d[2] == year) and (d[1] == month) and (d[0] < day)):
+                    settings["SpecDays"].pop(item)
+                    changed = True
+                    found = True
+                    break
+            if not found:
+                break
+
+        while (1):
+            found = False
+            row = 0
+            for item in settings["SpecialRings"]:
+                d = list(map(int, item[0].split("/")))
+                if (d[2] < year) or ((d[2] == year) and (d[1] < month)) or ((d[2] == year) and (d[1] == month) and (d[0] < day)):
+                    settings["SpecialRings"].remove(item)
+                    changed = True
+                    found = True
+                    break
+                row += 1
+            if not found:
+                break
+
+        if changed:
+            saveSettings()
 
 
     #Обновляем пиктограммы статуса
