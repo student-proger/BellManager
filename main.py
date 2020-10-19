@@ -7,7 +7,7 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.0.3"
+VER = "2.0.4"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
@@ -130,6 +130,8 @@ blockChange = False
 #Флаг блокировки многократного логирования ошибки порта
 lastErrorPort = False
 
+datapath = ""
+
 
 def messageBox(title, s):
     msg = QMessageBox()
@@ -145,7 +147,7 @@ def logger(msg):
         ss = datetime.strftime(datetime.now(), "%Y-%m")
         s = datetime.strftime(datetime.now(), "%d.%m.%Y  %H:%M:%S")
         s = s + " > " + msg
-        f = open("log/log" + ss + ".txt", "at")
+        f = open(datapath + "log/log" + ss + ".txt", "at")
         f.write(s + "\n")
         print(s)
         f.close()
@@ -161,7 +163,7 @@ def isWindows():
 def saveSettings():
     logger("Сохранение настроек.")
     try:
-        with open('settings.json', 'w') as f:
+        with open(datapath + 'settings.json', 'w') as f:
             json.dump(settings, f)
     except:
         logger("ОШИБКА: Не удалось сохранить настройки.")
@@ -171,7 +173,7 @@ def saveSettings():
 def loadSettings():
     global settings
     try:
-        with open('settings.json') as f:
+        with open(datapath + 'settings.json') as f:
             settings = json.load(f)
     except FileNotFoundError:
         pass
@@ -1846,10 +1848,16 @@ def main():
     global swindow
     global window
     global aboutwindow
+    global datapath
+
+    if isWindows():
+        datapath = os.getenv('APPDATA') + "\\BellManager\\"
+        if not os.path.exists(datapath):
+            os.mkdir(datapath)
 
     try:
-        if not os.path.exists("log"):
-            os.mkdir("log")
+        if not os.path.exists(datapath + "log"):
+            os.mkdir(datapath + "log")
     except:
         pass
 

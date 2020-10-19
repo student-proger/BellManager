@@ -2,6 +2,4 @@ __pycache__/
 build/
 dist/
 scheme/
-log/
 main.spec
-settings.json
