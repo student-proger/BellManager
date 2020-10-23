@@ -7,13 +7,14 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.0.4"
+VER = "2.1.0"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
 from datetime import datetime
 import time
 import json
+import winreg
 
 import serial #pyserial
 #Qt
@@ -252,7 +253,6 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         logger("********** Запуск приложения **********")
         if isWindows():
             print("OS: Windows")
-            #print(sys.argv[0])
         else:
             print("OS: Linux")
 
@@ -925,6 +925,19 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             swindow.listWidget_3.addItem(s)
             row += 1
 
+        if isWindows():
+            AutoRun = True
+            try:
+                key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_ALL_ACCESS)
+                winreg.QueryValueEx(key, "bellmanager")
+                winreg.CloseKey(key)
+            except FileNotFoundError:
+                AutoRun = False
+                winreg.CloseKey(key)
+            except:
+                logger("Ошибка доступа к реестру при попытке чтения флага автозагрузки.")
+            swindow.autoStartCheckbox.setChecked(AutoRun)
+
         swindow.portComboBox.setCurrentText(settings["Port"]["Win"])
         swindow.portLineEdit.setText(settings["Port"]["Linux"])
         swindow.portSpeed.setCurrentText(str(settings["Port"]["Speed"]))
@@ -1077,8 +1090,10 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         for i in range(1, 31):
             self.portComboBox.addItem("COM" + str(i))
 
-        self.autoStartCheckbox.setVisible(False)
         self.groupBox_2.setVisible(False)
+
+        if not isWindows():
+            self.autoStartCheckbox.setVisible(False)
 
 
     #Обновление списков после изменений в списках расписаний
@@ -1827,6 +1842,28 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.sett["EnableLog"] = True
         else:
             self.sett["EnableLog"] = False
+
+        if isWindows():
+            if self.autoStartCheckbox.checkState():
+                if sys.argv[0][-1] == 'e':
+                    try:
+                        fn = '"' + sys.argv[0] + '"'
+                        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_ALL_ACCESS)
+                        winreg.SetValueEx(key, "bellmanager", 0, winreg.REG_SZ, fn)
+                        winreg.CloseKey(key)
+                    except:
+                        logger("Ошибка доступа к реестру при попытке добавления флага автозагрузки.")
+                        messageBox("Ошибка", "Ошибка доступа к реестру Windows.")
+                else:
+                    messageBox("Уведомление", "Автозапуск возможен только при запуске скомпилированного приложения.")
+            else:
+                try:
+                    key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_ALL_ACCESS)
+                    winreg.DeleteValue(key, "bellmanager")
+                    winreg.CloseKey(key)
+                except:
+                    logger("Ошибка доступа к реестру при попытке удаления флага автозагрузки.")
+                    messageBox("Ошибка", "Ошибка доступа к реестру Windows.")
 
         settings = json.loads(json.dumps(self.sett))
         saveSettings()
