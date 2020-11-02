@@ -124,6 +124,7 @@ settings = {
         "24/9/2020": "0:0",
         "25/9/2020": "2:1"
     },
+    "EnableLog": True
 }
 
 #Флаг блокировки изменений в виджетах. Ставить True при загрузке данных на форму
@@ -135,6 +136,11 @@ datapath = ""
 
 
 def messageBox(title, s):
+    """Отображение диалогового окна с сообщением
+
+    :param title: заголовок окна
+    :param s: сообщение
+    """
     msg = QMessageBox()
     msg.setIcon(QMessageBox.Information)
     msg.setText(s)
@@ -143,6 +149,10 @@ def messageBox(title, s):
 
 
 def logger(msg):
+    """Логирование
+
+    :param msg: текст сообщения
+    """
     if settings["EnableLog"]:
         now = datetime.now()
         ss = datetime.strftime(datetime.now(), "%Y-%m")
@@ -155,6 +165,7 @@ def logger(msg):
 
 
 def isWindows():
+    """Проверяет, под какой ОС запущено приложение. True, если Windows."""
     if os.name == "nt":
         return True
     else:
@@ -162,6 +173,7 @@ def isWindows():
 
 
 def saveSettings():
+    """Сохранение настроек в файл"""
     logger("Сохранение настроек.")
     try:
         with open(datapath + 'settings.json', 'w') as f:
@@ -172,6 +184,7 @@ def saveSettings():
 
 
 def loadSettings():
+    """Загрузка настроек из файла"""
     global settings
     try:
         with open(datapath + 'settings.json') as f:
@@ -183,6 +196,7 @@ def loadSettings():
 
 
 def openPort():
+    """Открытие COM-порта"""
     global ser
     global lastErrorPort
     speed = settings["Port"]["Speed"]
@@ -212,6 +226,7 @@ def openPort():
 
 
 def closePort():
+    """Закрытие COM-порта"""
     global ser
     try:
         ser.close()
@@ -220,6 +235,10 @@ def closePort():
 
 
 def writePort(msg):
+    """Запись информации в COM-порт
+
+    :param msg: байтовая строка
+    """
     global ser
     global lastErrorPort
     try:
@@ -234,21 +253,11 @@ def writePort(msg):
 
 
 class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
+    """Класс главного окна приложения"""
     def __init__(self):
-        # Это здесь нужно для доступа к переменным, методам
-        # и т.д. в файле mainform.py
         super().__init__()
 
-        #Читаем настройки
         loadSettings()
-
-        #Для обратной совместимости с предыдущими версиями проверяем настройки
-        if not "IndexesRaspN" in settings:
-            settings["IndexesRaspN"] = [0, 0, 0, 0, 0, 0, 0]
-        if not "SpecDays" in settings:
-            settings["SpecDays"] = {}
-        if not "EnableLog" in settings:
-            settings["EnableLog"] = True
 
         logger("********** Запуск приложения **********")
         if isWindows():
@@ -256,6 +265,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         else:
             print("OS: Linux")
 
+        #Таймеры звонков. Выключают звонок через заданное время.
         self.ringtimer = [QtCore.QTimer(), QtCore.QTimer()]
         #Флаги включения звонка и освещения
         self.RingOn = [False, False]
@@ -273,6 +283,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.needLight = [False, False]
 
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
+
         self.settingsButton.clicked.connect(self.openSettings)
         self.manualRingButton.pressed.connect(self.manualRingPress)
         self.manualRingButton.released.connect(self.manualRingRelease)
@@ -322,7 +333,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.timer.timeout.connect(self.on_timer)
         self.timer.start(1000)
 
-        #Запускаем таймер сборщика мусора
+        #Запускаем таймер сборщика мусора в настройках
         self.timerGC = QtCore.QTimer()
         self.timerGC.timeout.connect(self.garbageCollector)
         self.timerGC.start(3600000)
@@ -337,8 +348,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         openPort()
 
 
-    #Главный таймер
     def on_timer(self):
+        """Главный таймер"""
         global lastErrorPort
         newidr = [-1, -1]
         needRing = [False, False]
@@ -453,7 +464,6 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                             self.needLight[0] = True
                         else:
                             self.needLight[0] = False
-
         else:
             self.label_6.setText("Режим энергосбережения - выходной")
             needRing[0] = False
@@ -548,7 +558,6 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             else:
                 self.blockRing[1] = False
 
-
         if settings["Mode"] == 0:
             self.LightOn[0] = self.needLight[0]
             self.LightOn[1] = self.needLight[1]
@@ -566,8 +575,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.UpdateStatus()
 
 
-    #Сборщик мусора. Удаляет старые данные из настроек.
     def garbageCollector(self):
+        """Сборщик мусора. Удаляет старые данные из настроек."""
         day = int(datetime.strftime(datetime.now(), "%d"))
         month = int(datetime.strftime(datetime.now(), "%m"))
         year = int(datetime.strftime(datetime.now(), "%Y"))
@@ -603,8 +612,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             saveSettings()
 
 
-    #Обновляем пиктограммы статуса
     def UpdateStatus(self):
+        """Обновляем пиктограммы статуса"""
         if self.RingOn[0] == True:
             self.statusR.setPixmap(self.pixmapGreen)
         else:
@@ -622,10 +631,10 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.statusL_2.setPixmap(self.pixmapGreen)
         else:
             self.statusL_2.setPixmap(self.pixmapRed)
+    
 
-
-    #"7:5" --> "7:05"
     def formatTime(self, s):
+        """ "7:5" --> "7:05" """
         t = list(map(int, s.split(":")))
         ss = str(t[0]) + ":"
         if t[1] < 10:
@@ -634,9 +643,11 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         return ss
 
 
-    #Возвращает индекс текущего действующего расписания
-    #index: 0 - основная, 1 - началка
     def TodayRasp(self, index):
+        """Возвращает индекс текущего действующего расписания
+        
+        :param index: 0 - основная, 1 - началка
+        """
         wday = int(datetime.strftime(datetime.now(), "%w"))
         if wday == 0:
             wday = 7
@@ -657,12 +668,11 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                     k = list(map(int, settings["SpecDays"][item].split(":")))
                     idr = k[index]
                     break
-
         return idr
 
 
-    #Заполнение таблиц расписания на главной форме
     def fillTimeTables(self):
+        """Заполнение таблиц расписания на главной форме"""
         #Заполняем время уроков
         self.tableWidget.clear()
         self.tableWidget_2.clear()
@@ -760,8 +770,12 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.tableWidget_6.resizeColumnsToContents()
         
 
-
     def startRing(self, duration, index):
+        """Включение звонка
+
+        :param duration: продолжительность звонка в секундах
+        :param index: 0 - основная, 1 - началка
+        """
         if duration != 0:
             self.ringtimer[index].timeout.connect(lambda: self.stopRing(index))
             self.ringtimer[index].start(duration * 1000)
@@ -775,6 +789,10 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def stopRing(self, index):
+        """Выключение звонка
+
+        :param index: 0 - основная, 1 - началка
+        """
         try:
             self.ringtimer[index].stop()
         except AttributeError:
@@ -789,6 +807,10 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def LightEnable(self, index):
+        """Включение освещения
+
+        :param index: 0 - основная, 1 - началка
+        """
         if self.lastLightState[index] == False:
             self.lastLightState[index] = True
             logger("Освещение включено.")
@@ -799,6 +821,10 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def LightDisable(self, index):
+        """Выключение освещения
+
+        :param index: 0 - основная, 1 - началка
+        """
         if self.lastLightState[index] == True:
             self.lastLightState[index] = False
             logger("Освещение выключено.")
@@ -809,6 +835,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def openSettings(self):
+        """Открытие окна настроек"""
         global blockChange
         logger("Открытие настроек.")
         blockChange = True
@@ -964,6 +991,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def autoModeButtonClick(self):
+        """Нажатие кнопки автоматического режима"""
         logger("Автоматический режим включён.")
         self.manualModeButton.setChecked(False)
         self.autoModeButton.setChecked(True)
@@ -976,6 +1004,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def manualModeButtonClick(self):
+        """Нажатие кнопки ручного режима"""
         logger("Ручной режим включён.")
         self.manualModeButton.setChecked(True)
         self.autoModeButton.setChecked(False)
@@ -990,6 +1019,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def amModeButtonClick(self):
+        """Нажатие кнопки полуавтоматического режима"""
         logger("Полуавтоматический режим включён.")
         self.manualModeButton.setChecked(False)
         self.autoModeButton.setChecked(False)
@@ -1004,25 +1034,31 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
 
     def manualRingPress(self):
+        """Ручное нажатие кнопки звонка основной школы"""
         logger("Ручное нажатие кнопки звонка.")
         self.startRing(0, 0)
 
 
     def manualRingRelease(self):
+        """Отпускание кнопки звонка основной школы"""
         logger("Кнопка отпущена.")
         self.stopRing(0)
 
+
     def manualRingNPress(self):
+        """Ручное нажатие кнопки звонка начальной школы"""
         logger("Ручное нажатие кнопки звонка в началке.")
         self.startRing(0, 1)
 
 
     def manualRingNRelease(self):
+        """Отпускание кнопки звонка начальной школы"""
         logger("Кнопка отпущена.")
         self.stopRing(1)
 
 
     def manualLightClick(self):
+        """Ручное нажатие кнопки освещения в основной школе"""
         self.manualLightOn[0] = not self.manualLightOn[0]
         if self.manualLightOn[0]:
             logger("Ручное включение освещения в основной школе.")
@@ -1030,7 +1066,9 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             logger("Ручное выключение освещения в основной школе.")
         self.UpdateStatus()
 
+
     def manualLightNClick(self):
+        """Ручное нажатие кнопки освещения в начальной школе"""
         self.manualLightOn[1] = not self.manualLightOn[1]
         if self.manualLightOn[1]:
             logger("Ручное включение освещения в начальной школе.")
@@ -1038,17 +1076,18 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             logger("Ручное выключение освещения в начальной школе.")
         self.UpdateStatus()
 
+
     def aboutButtonClick(self):
+        """Нажатие кнопки 'О программе'"""
         aboutwindow.exec_()
 
 
 
 class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
+    """Класс окна настроек"""
     def __init__(self):
-        # Это здесь нужно для доступа к переменным, методам
-        # и т.д. в файле mainform.py
         super().__init__()
-        self.setupUi(self)  # Это нужно для инициализации нашего дизайна
+        self.setupUi(self)
         self.listWidget.itemClicked.connect(self.listRaspClick)
         self.listWidget_2.itemClicked.connect(self.listSpecialDaysClick)
         self.listWidget_3.itemClicked.connect(self.listSpecialRingsClick)
@@ -1096,8 +1135,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.autoStartCheckbox.setVisible(False)
 
 
-    #Обновление списков после изменений в списках расписаний
     def updateLists(self):
+        """Обновление списков после изменений в списках расписаний"""
         global blockChange
         try:
             del(self.CurrentIds)
@@ -1224,16 +1263,19 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         blockChange = False
 
 
-    #Проверяет существование расписания по его имени
     def raspExistByName(self, name):
+        """Проверяет существование расписания по его имени
+
+        :param name: название расписания
+        """
         for item in self.sett["RaspList"]:
             if self.sett["RaspList"][item].upper() == name.upper():
                 return True
         return False
 
 
-    #Изменение значений на вкладке "Менеджер расписаний"
     def raspDayChanged(self):
+        """Изменение значений на вкладке 'Менеджер расписаний'"""
         global blockChange
         if blockChange:
             return
@@ -1257,8 +1299,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.sett["IndexesRaspN"][d] = ids
 
 
-    #Выбор расписания в списке
     def listRaspClick(self, item):
+        """Выбор расписания в списке"""
         #print(item.text())
         s = item.text()
         for item in self.sett["RaspList"]:
@@ -1352,8 +1394,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.tableWidget_4.resizeColumnsToContents()
 
 
-    #Кнопка добавления нового расписания
     def addNewRaspButtonClick(self):
+        """Кнопка добавления нового расписания"""
         rcopy = False
         try:
             ids = self.CurrentIds
@@ -1401,8 +1443,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
                 break
 
 
-    #Кнопка удаления расписания
     def deleteRaspButtonClick(self):
+        """Кнопка удаления расписания"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1429,8 +1471,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.updateLists()
 
 
-    #Кнопка переименования расписания
     def renameRaspButtonClick(self):
+        """Кнопка переименования расписания"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1449,8 +1491,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
                 break
 
 
-    #Кнопка добавления особенного дня
     def addSpecialDayButtonClick(self):
+        """Кнопка добавления особенного дня"""
         date = self.calendarWidget.selectedDate()
         day = date.day()
         month = date.month()
@@ -1468,8 +1510,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.updateLists()
 
 
-    #Кнопка удаления особенного дня
     def deleteSpecialDayButtonClick(self):
+        """Кнопка удаления особенного дня"""
         try:
             csd = self.currentSpecialDay
         except AttributeError:
@@ -1479,8 +1521,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.updateLists()
 
 
-    #Клик по списку особенных дней
     def listSpecialDaysClick(self, item):
+        """Клик по списку особенных дней"""
         s = item.text()
         k = s.split("-")[0].strip()
         t = list(map(int, k.split("/")))
@@ -1489,8 +1531,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         #print(self.currentSpecialDay)
 
 
-    #Кнопка добавления особенного звонка
     def addSpecialRingButtonClick(self):
+        """Кнопка добавления особенного звонка"""
         date = self.calendarWidget_2.selectedDate()
         day = date.day()
         month = date.month()
@@ -1510,8 +1552,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.updateLists()
 
 
-    #Кнопка удаления особенного звонка
     def deleteSpecialRingButtonClick(self):
+        """Кнопка удаления особенного звонка"""
         try:
             csr = self.currentSpecialRing
         except AttributeError:
@@ -1520,15 +1562,15 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.updateLists()
 
 
-    #Клик по списку особенных звонков
     def listSpecialRingsClick(self, item):
+        """Клик по списку особенных звонков"""
         s = item.text()
         self.currentSpecialRing = int(s.split(">")[0].strip())
         #print(self.currentSpecialRing)
 
 
-    #Событие вызывается при изменении времени в любом timeEdit в таблицах расписания
     def timeChangeEvent(self):
+        """Событие вызывается при изменении времени в любом timeEdit в таблицах расписания"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1559,8 +1601,12 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         #print(self.sett["Rasp"][ids][s])
 
 
-    #Событие вызывается при смене названия урока
     def lessonNameChangeEvent(self, row, column):
+        """Событие вызывается при смене названия урока
+
+        :param row: строка
+        :param column: столбец
+        """
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1573,8 +1619,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         #print(self.sett["Rasp"][ids][s])
 
 
-    #Событие вызывается при изменении комбобокса вкл/выкл в расписании освещения
     def lightStateChangeEvent(self):
+        """Событие вызывается при изменении комбобокса вкл/выкл в расписании освещения"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1591,8 +1637,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         #print(self.sett["Rasp"][ids]["Light"])
 
 
-    #Кнопка добавления урока в 1 смену
     def addLesson1ButtonClick(self):
+        """Кнопка добавления урока в 1 смену"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1624,8 +1670,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.tableWidget.resizeColumnsToContents()
 
 
-    #Кнопка добавления урока в 2 смену
     def addLesson2ButtonClick(self):
+        """Кнопка добавления урока в 2 смену"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1657,8 +1703,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.tableWidget_2.resizeColumnsToContents()
 
 
-    #Кнопка добавления освещения
     def addLightButtonClick(self):
+        """Кнопка добавления освещения"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1699,8 +1745,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.tableWidget_4.resizeColumnsToContents()
 
 
-    #Кнопка удаления урока в 1 смену
     def deleteLesson1ButtonClick(self):
+        """Кнопка удаления урока в 1 смену"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1735,8 +1781,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.tableWidget.resizeColumnsToContents()
 
 
-    #Кнопка удаления урока в 2 смену
     def deleteLesson2ButtonClick(self):
+        """Кнопка удаления урока в 2 смену"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1771,8 +1817,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.tableWidget_2.resizeColumnsToContents()
 
 
-    #Кнопка удаления освещения
     def deleteLightButtonClick(self):
+        """Кнопка удаления освещения"""
         try:
             ids = self.CurrentIds
         except AttributeError:
@@ -1816,14 +1862,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.tableWidget_4.resizeColumnsToContents()
 
 
-    #Нажатие кнопки "Отмена"
     def buttonCancelClick(self):
+        """Нажатие кнопки Отмена"""
         logger("Настройки закрыты. Отмена.")
         self.close()
 
 
-    #Нажатие кнопки "OK"
     def buttonOKClick(self):
+        """Нажатие кнопки OK"""
         global settings
         logger("Настройки закрыты. Применение.")
 
@@ -1873,6 +1919,7 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
 
 
 class AboutApp(QtWidgets.QDialog, aboutform.Ui_AboutDialog):
+    """Класс окна <О программе>"""
     def __init__(self):
         # Это здесь нужно для доступа к переменным, методам
         # и т.д. в файле mainform.py
@@ -1898,13 +1945,13 @@ def main():
     except:
         pass
 
-    app = QtWidgets.QApplication(sys.argv)  # Новый экземпляр QApplication
-    window = SchoolRingerApp()  # Создаём объект класса SchoolRingerApp
-    window.show()  # Показываем окно
+    app = QtWidgets.QApplication(sys.argv)
+    window = SchoolRingerApp()
+    window.show()
     swindow = SettingsApp()
     aboutwindow = AboutApp()
     
-    app.exec_()  # и запускаем приложение
+    app.exec_()
     logger("********** Завершение приложения **********")
 
 
