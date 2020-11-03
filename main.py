@@ -7,7 +7,7 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.1.0"
+VER = "2.1.1"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
@@ -1905,12 +1905,21 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             else:
                 try:
                     key = winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Software\Microsoft\Windows\CurrentVersion\Run", 0, winreg.KEY_ALL_ACCESS)
-                    winreg.DeleteValue(key, "bellmanager")
-                    winreg.CloseKey(key)
                 except:
                     logger("Ошибка доступа к реестру при попытке удаления флага автозагрузки.")
                     messageBox("Ошибка", "Ошибка доступа к реестру Windows.")
 
+                try:
+                    winreg.DeleteValue(key, "bellmanager")
+                except FileNotFoundError:
+                    #Ключа и не было, поэтому удалять нечего
+                    pass
+                except:
+                    logger("Ошибка удаления флага автозагрузки из реестра.")
+                    messageBox("Ошибка", "Ошибка удаления флага автозагрузки из реестра.")
+                finally:
+                    winreg.CloseKey(key)
+                
         settings = json.loads(json.dumps(self.sett))
         saveSettings()
         window.idr = [-1, -1]
