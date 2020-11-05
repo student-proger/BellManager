@@ -7,7 +7,7 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.1.1"
+VER = "2.1.2"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
@@ -691,6 +691,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.tableWidget.setRowCount(0)
             self.tableWidget_2.setRowCount(0)
             self.tableWidget_3.setRowCount(0)
+            self.LightOnLabel1.setText("--:--")
+            self.LightOffLabel1.setText("--:--")
         else:
             row = 0
             vh = []
@@ -728,10 +730,15 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.tableWidget_3.setVerticalHeaderLabels(vh)
             self.tableWidget_3.resizeColumnsToContents()
 
+            self.LightOnLabel1.setText(self.formatTime(settings["Rasp"][str(self.idr[0])]["LightOn"]))
+            self.LightOffLabel1.setText(self.formatTime(settings["Rasp"][str(self.idr[0])]["LightOff"]))
+
         if self.idr[1] == 0:
             self.tableWidget_4.setRowCount(0)
             self.tableWidget_5.setRowCount(0)
             self.tableWidget_6.setRowCount(0)
+            self.LightOnLabel2.setText("--:--")
+            self.LightOffLabel2.setText("--:--")
         else:
             row = 0
             vh = []
@@ -768,6 +775,9 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                 row += 1
             self.tableWidget_6.setVerticalHeaderLabels(vh)
             self.tableWidget_6.resizeColumnsToContents()
+
+            self.LightOnLabel2.setText(self.formatTime(settings["Rasp"][str(self.idr[1])]["LightOn"]))
+            self.LightOffLabel2.setText(self.formatTime(settings["Rasp"][str(self.idr[1])]["LightOff"]))
         
 
     def startRing(self, duration, index):
