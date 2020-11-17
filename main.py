@@ -7,7 +7,7 @@
 * Description:    Программа для управления освещением и звонками в школе
 '''
 
-VER = "2.1.2"
+VER = "2.1.3"
 
 import os
 import sys  # sys нужен для передачи argv в QApplication
@@ -22,6 +22,7 @@ from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QTableWidgetItem, QLabel, QTimeEdit, QInputDialog, QComboBox
 from PyQt5.QtWidgets import QMessageBox
 from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QColor
 #design
 import mainform
 import settingsform
@@ -415,6 +416,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             mtime = h * 60 + m
             needRing[0] = False
             self.needLight[0] = True
+            row = 0
             for item in self.crasp[0]["Times"]:
                 ts = list(map(int, item[1].split(":")))
                 te = list(map(int, item[2].split(":")))
@@ -426,6 +428,13 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                     self.needLight[0] = False
                 if (mtime >= stime) and (mtime < etime):
                     nowLesson[0] = True
+                    self.tableWidget.item(row, 0).setBackground(QColor(184, 251, 170))
+                    self.tableWidget.item(row, 1).setBackground(QColor(184, 251, 170))
+                else:
+                    self.tableWidget.item(row, 0).setBackground(QColor(255, 255, 255))
+                    self.tableWidget.item(row, 1).setBackground(QColor(255, 255, 255))
+                row += 1
+            row = 0
             for item in self.crasp[0]["Times2"]:
                 ts = list(map(int, item[1].split(":")))
                 te = list(map(int, item[2].split(":")))
@@ -437,6 +446,12 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                     self.needLight[0] = False
                 if (mtime >= stime) and (mtime < etime):
                     nowLesson[0] = True
+                    self.tableWidget_2.item(row, 0).setBackground(QColor(184, 251, 170))
+                    self.tableWidget_2.item(row, 1).setBackground(QColor(184, 251, 170))
+                else:
+                    self.tableWidget_2.item(row, 0).setBackground(QColor(255, 255, 255))
+                    self.tableWidget_2.item(row, 1).setBackground(QColor(255, 255, 255))
+                row += 1
 
             if nowLesson[0]:
                 self.label_6.setText("Сейчас идёт урок")
@@ -474,6 +489,7 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             mtime = h * 60 + m
             needRing[1] = False
             self.needLight[1] = True
+            row = 0
             for item in self.crasp[1]["Times"]:
                 ts = list(map(int, item[1].split(":")))
                 te = list(map(int, item[2].split(":")))
@@ -485,6 +501,13 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                     self.needLight[1] = False
                 if (mtime >= stime) and (mtime < etime):
                     nowLesson[1] = True
+                    self.tableWidget_4.item(row, 0).setBackground(QColor(184, 251, 170))
+                    self.tableWidget_4.item(row, 1).setBackground(QColor(184, 251, 170))
+                else:
+                    self.tableWidget_4.item(row, 0).setBackground(QColor(255, 255, 255))
+                    self.tableWidget_4.item(row, 1).setBackground(QColor(255, 255, 255))
+                row += 1
+            row = 0
             for item in self.crasp[1]["Times2"]:
                 ts = list(map(int, item[1].split(":")))
                 te = list(map(int, item[2].split(":")))
@@ -496,6 +519,12 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                     self.needLight[1] = False
                 if (mtime >= stime) and (mtime < etime):
                     nowLesson[1] = True
+                    self.tableWidget_5.item(row, 0).setBackground(QColor(184, 251, 170))
+                    self.tableWidget_5.item(row, 1).setBackground(QColor(184, 251, 170))
+                else:
+                    self.tableWidget_5.item(row, 0).setBackground(QColor(255, 255, 255))
+                    self.tableWidget_5.item(row, 1).setBackground(QColor(255, 255, 255))
+                row += 1
 
             if nowLesson[1]:
                 self.label_12.setText("Сейчас идёт урок")

@@ -2,7 +2,7 @@
 
 # BellManager
 Программа для управления звонками и освещением в школе    
-Текущая версия: **v2.1.2**    
+Текущая версия: **v2.1.3**    
 Протестированная версия Python: **3.8.5**    
 Подробности о проекте: [https://19dx.ru/2020/10/light-and-bell-school-controller/](https://19dx.ru/2020/10/light-and-bell-school-controller/)
 
