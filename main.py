@@ -469,16 +469,23 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
             #Проверяем исключения по освещению
             if len(self.crasp[0]["Light"]) != 0:
+                row = 0
                 for item in self.crasp[0]["Light"]:
                     ts = list(map(int, item[1].split(":")))
                     te = list(map(int, item[2].split(":")))
                     stime = ts[0] * 60 + ts[1]
                     etime = te[0] * 60 + te[1]
                     if (mtime >= stime) and (mtime < etime):
+                        self.tableWidget_3.item(row, 0).setBackground(QColor(184, 251, 170))
+                        self.tableWidget_3.item(row, 1).setBackground(QColor(184, 251, 170))
                         if item[0] == 1:
                             self.needLight[0] = True
                         else:
                             self.needLight[0] = False
+                    else:
+                        self.tableWidget_3.item(row, 0).setBackground(QColor(255, 255, 255))
+                        self.tableWidget_3.item(row, 1).setBackground(QColor(255, 255, 255))
+                    row += 1
         else:
             self.label_6.setText("Режим энергосбережения - выходной")
             needRing[0] = False
@@ -542,16 +549,23 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
             #Проверяем исключения по освещению
             if len(self.crasp[1]["Light"]) != 0:
+                row = 0
                 for item in self.crasp[1]["Light"]:
                     ts = list(map(int, item[1].split(":")))
                     te = list(map(int, item[2].split(":")))
                     stime = ts[0] * 60 + ts[1]
                     etime = te[0] * 60 + te[1]
                     if (mtime >= stime) and (mtime < etime):
+                        self.tableWidget_6.item(row, 0).setBackground(QColor(184, 251, 170))
+                        self.tableWidget_6.item(row, 1).setBackground(QColor(184, 251, 170))
                         if item[0] == 1:
                             self.needLight[1] = True
                         else:
                             self.needLight[1] = False
+                    else:
+                        self.tableWidget_6.item(row, 0).setBackground(QColor(255, 255, 255))
+                        self.tableWidget_6.item(row, 1).setBackground(QColor(255, 255, 255))
+                    row += 1
         else:
             self.label_12.setText("Режим энергосбережения - выходной")
             needRing[1] = False
