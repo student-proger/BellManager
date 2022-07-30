@@ -1179,9 +1179,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         def run(self):
             logger("Начало воспроизведения звукового уведомления.")
             if self.count == 1:
-                playsound("sounds/male-1min.mp3")
+                fn = "sounds/male-1min.mp3"
             elif self.count == 5:
-                playsound("sounds/male-5min.mp3")
+                fn = "sounds/male-5min.mp3"
+            logger("Имя медиафайла: " + fn)
+            try:
+                playsound(fn)
+            except:
+                logger("ERROR: Ошибка воспроизведения.")
             logger("Окончание воспроизведения звукового уведомления.")
 
 
