@@ -20,7 +20,7 @@ import serial  # pyserial
 # Qt
 from PyQt5 import QtWidgets, QtCore
 from PyQt5.QtWidgets import QTableWidgetItem, QLabel, QTimeEdit, QInputDialog, QComboBox
-from PyQt5.QtWidgets import QMessageBox
+from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from PyQt5.QtGui import QPixmap
 from PyQt5.QtGui import QColor
 # design
@@ -48,6 +48,7 @@ settings = {
     "LightDelay": 2,
     "AutoOnNewDay": True,
     "Mode": 0,
+    "Notify": True,
     "IndexesRasp": [1, 1, 1, 1, 1, 3, 0],
     "IndexesRaspN": [1, 1, 1, 1, 1, 0, 0],
     "RaspList": {
@@ -134,8 +135,10 @@ settings = {
 blockChange = False
 # Флаг блокировки многократного логирования ошибки порта
 lastErrorPort = False
-
+# Путь к каталогу Appdata
 datapath = ""
+# Путь к каталогу программы
+path = ""
 
 
 def messageBox(title, s):
@@ -195,8 +198,16 @@ def loadSettings():
     except FileNotFoundError:
         pass
     except:
+        logger("Ошибка чтения файла настроек. Возможно нет прав доступа на чтение.")
         messageBox("Критическая ошибка", "Ошибка чтения файла настроек. Возможно нет прав доступа на чтение.")
 
+    # Устанавливаем значения по-умолчанию, если их нет в настройках
+    if "NotifyFile1" not in settings:
+        settings["NotifyFile1"] = path + "sounds/male-1min.mp3"
+    if "NotifyFile5" not in settings:
+        settings["NotifyFile5"] = path + "sounds/male-5min.mp3"
+    if "Notify" not in settings:
+        settings["Notify"] = True
 
 def openPort():
     """Открытие COM-порта"""
@@ -1068,6 +1079,13 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.portLineEdit.setText(settings["Port"]["Linux"])
         swindow.portSpeed.setCurrentText(str(settings["Port"]["Speed"]))
 
+        if settings["Notify"]:
+            swindow.notifyBeforeRing.setChecked(True)
+        else:
+            swindow.notifyBeforeRing.setChecked(False)
+        swindow.notify1.setText(settings["NotifyFile1"])
+        swindow.notify5.setText(settings["NotifyFile5"])
+
         blockChange = False
 
         try:
@@ -1177,17 +1195,18 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             self.count = countMinutes
 
         def run(self):
-            logger("Начало воспроизведения звукового уведомления.")
-            if self.count == 1:
-                fn = "sounds/male-1min.mp3"
-            elif self.count == 5:
-                fn = "sounds/male-5min.mp3"
-            logger("Имя медиафайла: " + fn)
-            try:
-                playsound(fn)
-            except:
-                logger("ERROR: Ошибка воспроизведения.")
-            logger("Окончание воспроизведения звукового уведомления.")
+            if settings["Notify"]:
+                logger("Начало воспроизведения звукового уведомления.")
+                if self.count == 1:
+                    fn = settings["NotifyFile1"]
+                elif self.count == 5:
+                    fn = settings["NotifyFile5"]
+                logger("Имя медиафайла: " + fn)
+                try:
+                    playsound(fn)
+                except:
+                    logger("ERROR: Ошибка воспроизведения.")
+                logger("Окончание воспроизведения звукового уведомления.")
 
 
 
@@ -1232,6 +1251,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.deleteSpecialDayButton.clicked.connect(self.deleteSpecialDayButtonClick)
         self.addSpecialRingButton.clicked.connect(self.addSpecialRingButtonClick)
         self.deleteSpecialRingButton.clicked.connect(self.deleteSpecialRingButtonClick)
+        self.browseNotifyFile1.clicked.connect(self.browseNotifyFile1Click)
+        self.browseNotifyFile5.clicked.connect(self.browseNotifyFile5Click)
 
         self.portComboBox.clear()
         for i in range(1, 31):
@@ -1950,6 +1971,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             row += 1
         self.tableWidget_4.resizeColumnsToContents()
 
+    def browseNotifyFile1Click(self):
+        fname = QFileDialog.getOpenFileName(self, 'Выбор файла', path, "Аудиофайлы (*.mp3 *.wav);;Все файлы (*.*)")[0]
+        self.notify1.setText(fname)
+
+    def browseNotifyFile5Click(self):
+        fname = QFileDialog.getOpenFileName(self, 'Выбор файла', path, "Аудиофайлы (*.mp3 *.wav);;Все файлы (*.*)")[0]
+        self.notify5.setText(fname)
+
     def buttonCancelClick(self):
         """Нажатие кнопки Отмена"""
         logger("Настройки закрыты. Отмена.")
@@ -1963,6 +1992,13 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.sett["Port"]["Win"] = self.portComboBox.currentText()
         self.sett["Port"]["Linux"] = self.portLineEdit.text()
         self.sett["Port"]["Speed"] = int(self.portSpeed.currentText())
+
+        if self.notifyBeforeRing:
+            self.sett["Notify"] = True
+        else:
+            self.sett["Notify"] = False
+        self.sett["NotifyFile1"] = self.notify1.text()
+        self.sett["NotifyFile5"] = self.notify5.text()
 
         self.sett["RingDuration"] = self.spinBox.value()
         self.sett["LightDelay"] = self.spinBox_2.value()
@@ -2029,11 +2065,22 @@ def main():
     global window
     global aboutwindow
     global datapath
+    global path
 
     if isWindows():
         datapath = os.getenv('APPDATA') + "\\BellManager\\"
         if not os.path.exists(datapath):
             os.mkdir(datapath)
+        print("DATAPATH: " + datapath)
+        
+        k = 0
+        path = __file__
+        for i in range(0, len(path)):
+            if path[i] == "\\":
+                k = i
+        path = path[:k+1]
+        print("PATH: " + path)
+
 
     try:
         if not os.path.exists(datapath + "log"):
