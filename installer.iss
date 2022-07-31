@@ -2,7 +2,7 @@
 ; SEE THE DOCUMENTATION FOR DETAILS ON CREATING INNO SETUP SCRIPT FILES!
 
 #define MyAppName "Bell Manager"
-#define MyAppVersion "2.1.3"
+#define MyAppVersion "3.0.0"
 #define MyAppPublisher "√ладышев ƒмитрий"
 #define MyAppURL "https://19dx.ru/"
 #define MyAppExeName "bellmanager.exe"
