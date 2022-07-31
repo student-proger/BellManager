@@ -3,4 +3,6 @@ build/
 dist/
 scheme/
 installerbuild/
+.idea/
+venv/
 main.spec

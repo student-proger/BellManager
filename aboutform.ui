@@ -103,7 +103,7 @@
     <rect>
      <x>10</x>
      <y>70</y>
-     <width>221</width>
+     <width>261</width>
      <height>16</height>
     </rect>
    </property>
@@ -113,7 +113,7 @@
     </font>
    </property>
    <property name="text">
-    <string>Автор: Гладышев Дмитрий (2020)</string>
+    <string>Автор: Гладышев Дмитрий (2020-2022)</string>
    </property>
   </widget>
  </widget>
