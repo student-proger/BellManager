@@ -1086,6 +1086,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         swindow.notify1.setText(settings["NotifyFile1"])
         swindow.notify5.setText(settings["NotifyFile5"])
 
+        swindow.tabWidget.setCurrentIndex(0)
+
         blockChange = False
 
         try:
