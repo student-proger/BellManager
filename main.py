@@ -28,7 +28,7 @@ import mainform
 import settingsform
 import aboutform
 
-VER = "3.0.0"
+VER = "3.0.1"
 
 RusDays = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
 
@@ -394,6 +394,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                 self.amModeButton.setChecked(False)
                 self.manualLightButton.setEnabled(False)
                 self.manualLightButton_2.setEnabled(False)
+                settings["Mode"] = 0
+                saveSettings()
 
         if lastErrorPort:
             self.label_7.setText("Ошибка связи с контроллером!")
