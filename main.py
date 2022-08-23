@@ -18,7 +18,7 @@ from threading import Thread, Lock
 
 import serial  # pyserial
 # Qt
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QTableWidgetItem, QLabel, QTimeEdit, QInputDialog, QComboBox
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from PyQt5.QtGui import QPixmap
@@ -28,7 +28,7 @@ import mainform
 import settingsform
 import aboutform
 
-VER = "3.0.0"
+VER = "3.0.2"
 
 RusDays = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
 
@@ -49,6 +49,7 @@ settings = {
     "AutoOnNewDay": True,
     "Mode": 0,
     "Notify": True,
+    "NotifyDifferentByDays": True,
     "IndexesRasp": [1, 1, 1, 1, 1, 3, 0],
     "IndexesRaspN": [1, 1, 1, 1, 1, 0, 0],
     "RaspList": {
@@ -206,8 +207,14 @@ def loadSettings():
         settings["NotifyFile1"] = path + "sounds/male-1min.mp3"
     if "NotifyFile5" not in settings:
         settings["NotifyFile5"] = path + "sounds/male-5min.mp3"
+    if "NotifyFile1_2" not in settings:
+        settings["NotifyFile1_2"] = path + "sounds/female-1min.mp3"
+    if "NotifyFile5_2" not in settings:
+        settings["NotifyFile5_2"] = path + "sounds/female-5min.mp3"
     if "Notify" not in settings:
         settings["Notify"] = True
+    if "NotifyDifferentByDays" not in settings:
+        settings["NotifyDifferentByDays"] = True
 
 def openPort():
     """Открытие COM-порта"""
@@ -300,6 +307,46 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
 
+        # В файле mainform.py не учитывается возможность несовпадения каталога программы с рабочим каталогом.
+        # Такое происходит, например, при автостарте программы. И в этом случае изображения не подгружаются.
+        # Данные строки исправляют эту ошибку и повторно загружают ресурсы, но уже с учётом пути.
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/alarm_32px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.setWindowIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/settings_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.settingsButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/info_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.aboutButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/flash_auto_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.autoModeButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/flash_off_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.manualModeButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/lightning_bolt_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.amModeButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/alarm_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.manualRingButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/light_on_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.manualLightButton.setIcon(icon)
+
+        self.iconRing.setPixmap(QtGui.QPixmap(path + "images/notification_32px.png"))
+        self.iconLight.setPixmap(QtGui.QPixmap(path + "images/light_on_32px.png"))
+        self.iconRing_2.setPixmap(QtGui.QPixmap(path + "images/notification_32px.png"))
+        self.iconLight_2.setPixmap(QtGui.QPixmap(path + "images/light_on_32px.png"))
+
         self.settingsButton.clicked.connect(self.openSettings)
         self.manualRingButton.pressed.connect(self.manualRingPress)
         self.manualRingButton.released.connect(self.manualRingRelease)
@@ -354,8 +401,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.timerGC.timeout.connect(self.garbageCollector)
         self.timerGC.start(3600000)
 
-        self.pixmapRed = QPixmap("images/red.png")
-        self.pixmapGreen = QPixmap("images/green.png")
+        self.pixmapRed = QPixmap(path + "images/red.png")
+        self.pixmapGreen = QPixmap(path + "images/green.png")
         self.statusR.setPixmap(self.pixmapRed)
         self.statusL.setPixmap(self.pixmapRed)
         self.statusR_2.setPixmap(self.pixmapRed)
@@ -387,6 +434,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
                 self.amModeButton.setChecked(False)
                 self.manualLightButton.setEnabled(False)
                 self.manualLightButton_2.setEnabled(False)
+                settings["Mode"] = 0
+                saveSettings()
 
         if lastErrorPort:
             self.label_7.setText("Ошибка связи с контроллером!")
@@ -1083,8 +1132,14 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
             swindow.notifyBeforeRing.setChecked(True)
         else:
             swindow.notifyBeforeRing.setChecked(False)
+        if settings["NotifyDifferentByDays"]:
+            swindow.differentByDays.setChecked(True)
+        else:
+            swindow.differentByDays.setChecked(False)
         swindow.notify1.setText(settings["NotifyFile1"])
         swindow.notify5.setText(settings["NotifyFile5"])
+        swindow.notify1_2.setText(settings["NotifyFile1_2"])
+        swindow.notify5_2.setText(settings["NotifyFile5_2"])
 
         swindow.tabWidget.setCurrentIndex(0)
 
@@ -1199,10 +1254,21 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         def run(self):
             if settings["Notify"]:
                 logger("Начало воспроизведения звукового уведомления.")
+
                 if self.count == 1:
                     fn = settings["NotifyFile1"]
                 elif self.count == 5:
                     fn = settings["NotifyFile5"]
+
+                # Если соответствующая настройка включена, то по чётным числам будет другой звук
+                if settings["NotifyDifferentByDays"]:
+                    now = datetime.now()
+                    if int(datetime.strftime(now, "%d")) % 2 == 0:
+                        if self.count == 1:
+                            fn = settings["NotifyFile1_2"]
+                        elif self.count == 5:
+                            fn = settings["NotifyFile5_2"]
+
                 logger("Имя медиафайла: " + fn)
                 try:
                     playsound(fn)
@@ -1255,6 +1321,8 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         self.deleteSpecialRingButton.clicked.connect(self.deleteSpecialRingButtonClick)
         self.browseNotifyFile1.clicked.connect(self.browseNotifyFile1Click)
         self.browseNotifyFile5.clicked.connect(self.browseNotifyFile5Click)
+        self.browseNotifyFile1_2.clicked.connect(self.browseNotifyFile12Click)
+        self.browseNotifyFile5_2.clicked.connect(self.browseNotifyFile52Click)
 
         self.portComboBox.clear()
         for i in range(1, 31):
@@ -1981,6 +2049,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
         fname = QFileDialog.getOpenFileName(self, 'Выбор файла', path, "Аудиофайлы (*.mp3 *.wav);;Все файлы (*.*)")[0]
         self.notify5.setText(fname)
 
+    def browseNotifyFile12Click(self):
+        fname = QFileDialog.getOpenFileName(self, 'Выбор файла', path, "Аудиофайлы (*.mp3 *.wav);;Все файлы (*.*)")[0]
+        self.notify1_2.setText(fname)
+
+    def browseNotifyFile52Click(self):
+        fname = QFileDialog.getOpenFileName(self, 'Выбор файла', path, "Аудиофайлы (*.mp3 *.wav);;Все файлы (*.*)")[0]
+        self.notify5_2.setText(fname)
+
     def buttonCancelClick(self):
         """Нажатие кнопки Отмена"""
         logger("Настройки закрыты. Отмена.")
@@ -1999,8 +2075,14 @@ class SettingsApp(QtWidgets.QDialog, settingsform.Ui_Dialog):
             self.sett["Notify"] = True
         else:
             self.sett["Notify"] = False
+        if self.differentByDays:
+            self.sett["NotifyDifferentByDays"] = True
+        else:
+            self.sett["NotifyDifferentByDays"] = False
         self.sett["NotifyFile1"] = self.notify1.text()
         self.sett["NotifyFile5"] = self.notify5.text()
+        self.sett["NotifyFile1_2"] = self.notify1_2.text()
+        self.sett["NotifyFile5_2"] = self.notify5_2.text()
 
         self.sett["RingDuration"] = self.spinBox.value()
         self.sett["LightDelay"] = self.spinBox_2.value()
@@ -2078,7 +2160,7 @@ def main():
         k = 0
         path = __file__
         for i in range(0, len(path)):
-            if path[i] == "\\":
+            if path[i] == "\\" or path[i] == "/":
                 k = i
         path = path[:k+1]
         print("PATH: " + path)
