@@ -18,7 +18,7 @@ from threading import Thread, Lock
 
 import serial  # pyserial
 # Qt
-from PyQt5 import QtWidgets, QtCore
+from PyQt5 import QtWidgets, QtCore, QtGui
 from PyQt5.QtWidgets import QTableWidgetItem, QLabel, QTimeEdit, QInputDialog, QComboBox
 from PyQt5.QtWidgets import QMessageBox, QFileDialog
 from PyQt5.QtGui import QPixmap
@@ -307,6 +307,46 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
 
         self.setupUi(self)  # Это нужно для инициализации нашего дизайна
 
+        # В файле mainform.py не учитывается возможность несовпадения каталога программы с рабочим каталогом.
+        # Такое происходит, например, при автостарте программы. И в этом случае изображения не подгружаются.
+        # Данные строки исправляют эту ошибку и повторно загружают ресурсы, но уже с учётом пути.
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/alarm_32px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.setWindowIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/settings_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.settingsButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/info_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.aboutButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/flash_auto_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.autoModeButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/flash_off_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.manualModeButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/lightning_bolt_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.amModeButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/alarm_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.manualRingButton.setIcon(icon)
+
+        icon = QtGui.QIcon()
+        icon.addPixmap(QtGui.QPixmap(path + "images/light_on_24px.png"), QtGui.QIcon.Normal, QtGui.QIcon.Off)
+        self.manualLightButton.setIcon(icon)
+
+        self.iconRing.setPixmap(QtGui.QPixmap(path + "images/notification_32px.png"))
+        self.iconLight.setPixmap(QtGui.QPixmap(path + "images/light_on_32px.png"))
+        self.iconRing_2.setPixmap(QtGui.QPixmap(path + "images/notification_32px.png"))
+        self.iconLight_2.setPixmap(QtGui.QPixmap(path + "images/light_on_32px.png"))
+
         self.settingsButton.clicked.connect(self.openSettings)
         self.manualRingButton.pressed.connect(self.manualRingPress)
         self.manualRingButton.released.connect(self.manualRingRelease)
@@ -361,8 +401,8 @@ class SchoolRingerApp(QtWidgets.QMainWindow, mainform.Ui_MainWindow):
         self.timerGC.timeout.connect(self.garbageCollector)
         self.timerGC.start(3600000)
 
-        self.pixmapRed = QPixmap("images/red.png")
-        self.pixmapGreen = QPixmap("images/green.png")
+        self.pixmapRed = QPixmap(path + "images/red.png")
+        self.pixmapGreen = QPixmap(path + "images/green.png")
         self.statusR.setPixmap(self.pixmapRed)
         self.statusL.setPixmap(self.pixmapRed)
         self.statusR_2.setPixmap(self.pixmapRed)
@@ -2120,7 +2160,7 @@ def main():
         k = 0
         path = __file__
         for i in range(0, len(path)):
-            if path[i] == "\\":
+            if path[i] == "\\" or path[i] == "/":
                 k = i
         path = path[:k+1]
         print("PATH: " + path)
