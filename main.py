@@ -28,7 +28,7 @@ import mainform
 import settingsform
 import aboutform
 
-VER = "3.0.1"
+VER = "3.0.2"
 
 RusDays = ["Воскресенье", "Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота"]
 
